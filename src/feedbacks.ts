@@ -37,6 +37,8 @@ import {
 	getDeviceBySerial,
 	getMobileDeviceChoices,
 	getAudioLinkChoices,
+	getAudioInputChoices,
+	getAudioOutputChoices,
 	rfChannelChoices,
 	STEREO_INPUT_OFFSET,
 } from './utils.js'
@@ -537,8 +539,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				allowCustom: true,
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			return device?.identify === true
 		},
@@ -561,8 +563,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				allowCustom: true,
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			return device?.reverseIdentify === true
 		},
@@ -585,8 +587,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				allowCustom: true,
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			return device?.state === MtState.Connected
 		},
@@ -616,8 +618,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				choices: getChoicesFromEnum(MtState),
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			return device?.state === feedback.options.state
 		},
@@ -640,8 +642,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				allowCustom: true,
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			return device?.batteryLow === true
 		},
@@ -671,8 +673,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				choices: getChoicesFromEnum(Interference),
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			return device?.interference?.severity === feedback.options.severity
 		},
@@ -702,8 +704,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				choices: getChoicesFromEnum(AntennaPortId),
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			return device?.dominantAntenna === feedback.options.antenna
 		},
@@ -726,8 +728,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				allowCustom: true,
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (device?.type === MtType.SEK) {
 				return device.headphonePlugState === 'Plugged'
@@ -761,9 +763,9 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				allowCustom: true,
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial1 = await context.parseVariablesInString(feedback.options.serial1 as string)
-			const serial2 = await context.parseVariablesInString(feedback.options.serial2 as string)
+		callback: async (feedback) => {
+			const serial1 = feedback.options.serial1 as string
+			const serial2 = feedback.options.serial2 as string
 			const device1 = getDeviceBySerial(self.state, serial1)
 			const device2 = getDeviceBySerial(self.state, serial2)
 			if (device1?.type === MtType.SEK && device2?.type === MtType.SEK) {
@@ -792,8 +794,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				allowCustom: true,
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (device?.type === MtType.SEK) {
 				return device.iemAudiolinkActive === true
@@ -826,8 +828,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				id: 'inputId',
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			const rawId = Number(feedback.options.inputId)
 			const inputId = rawId >= STEREO_INPUT_OFFSET ? rawId - STEREO_INPUT_OFFSET : rawId
@@ -855,8 +857,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				allowCustom: true,
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (device?.type === MtType.SEK && device.iemAudiolinkId === -1) {
 				return true
@@ -876,10 +878,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			{
 				type: 'dropdown',
 				label: 'Audio Input',
-				choices: Array.from(self.state.audioInputs.values()).map((i) => ({
-					id: i.inputId,
-					label: i.name || `Input ${i.inputId + 1}`,
-				})),
+				choices: getAudioInputChoices(self.state),
 				default: 0,
 				id: 'inputId',
 			},
@@ -909,10 +908,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			{
 				type: 'dropdown',
 				label: 'Audio Output',
-				choices: Array.from(self.state.audioOutputs.values()).map((o) => ({
-					id: o.outputId,
-					label: `Output ${o.outputId + 1}`,
-				})),
+				choices: getAudioOutputChoices(),
 				default: 0,
 				id: 'outputId',
 			},
@@ -970,16 +966,13 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			{
 				type: 'dropdown',
 				label: 'Audio Output',
-				choices: Array.from(self.state.audioOutputs.values()).map((o) => ({
-					id: o.outputId,
-					label: `Output ${o.outputId + 1}`,
-				})),
+				choices: getAudioOutputChoices(),
 				default: 0,
 				id: 'outputId',
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			const outputId = Number(feedback.options.outputId)
 			if (device?.micAudiolinkId !== -1) {
@@ -1071,8 +1064,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				default: '',
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			return device?.frequencyRange === feedback.options.range
 		},
@@ -1106,8 +1099,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				id: 'rfChannelId',
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			const rfChannelId = feedback.options.rfChannelId === -1 ? undefined : (feedback.options.rfChannelId as number)
 			return device?.rfChannelId === rfChannelId
@@ -1131,8 +1124,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				allowCustom: true,
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			return device?.sleep === true
 		},
@@ -1162,8 +1155,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				id: 'commandBehavior',
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			return device?.commandBehavior === feedback.options.commandBehavior
 		},
@@ -1193,8 +1186,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				id: 'commandState',
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			return device?.commandState === feedback.options.commandState
 		},
@@ -1224,8 +1217,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				useVariables: true,
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			const level = device?.batteryFillLevel
 			return level !== undefined && level <= Number(feedback.options.threshold)
@@ -1256,8 +1249,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				useVariables: true,
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			const runtime = device?.batteryRuntime
 			return runtime !== undefined && runtime <= Number(feedback.options.threshold)
@@ -1289,8 +1282,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				presetColors: [...LED_COLOR_PRESETS],
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			return colorsMatch(device?.connectedStateColor, feedback.options.connectedStateColor)
 		},
@@ -1300,6 +1293,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 		type: 'advanced',
 		name: 'Mobile Device - Connected State Color',
 		description: 'Change the background color to the Connected State LED color.',
+		affectedProperties: ['bgcolor'],
 		options: [
 			{
 				type: 'dropdown',
@@ -1310,8 +1304,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				allowCustom: true,
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device) return { bgcolor: undefined }
 
@@ -1338,8 +1332,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				allowCustom: true,
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			return device?.micAudiolinkActive === true
 		},
@@ -1362,8 +1356,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				allowCustom: true,
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			return device?.micTestToneEnabled === true
 		},
@@ -1392,8 +1386,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				default: '-20',
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			return device?.micTestToneLevel === Number(feedback.options.level)
 		},
@@ -1422,8 +1416,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				default: '-20',
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (device?.type === MtType.SEK) {
 				return device.headphoneVolume === Number(feedback.options.volume)
@@ -1455,8 +1449,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				default: '0',
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (device?.type === MtType.SEK) {
 				return device.headphoneBalance === Number(feedback.options.balance)
@@ -1488,8 +1482,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				default: '12',
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			return device?.micPreampGain === Number(feedback.options.gain)
 		},
@@ -1519,8 +1513,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				choices: getChoicesFromEnum(MicLowCutHzSEK),
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			const frequency = Number(feedback.options.frequency)
 			if (!device) return false
@@ -1561,8 +1555,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				default: '0',
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (device?.type === MtType.SEK) {
 				return device.headphoneVolumeLimit === Number(feedback.options.limit)
@@ -1594,8 +1588,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				default: '0',
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (device?.type === MtType.SEK) {
 				return device.headphoneVolumeMax === Number(feedback.options.max)
@@ -1627,8 +1621,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				default: '0',
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (device?.type === MtType.SEK) {
 				return device.headphoneVolumeMin === Number(feedback.options.min)
@@ -1661,8 +1655,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				choices: getChoicesFromEnum(MicLineSelection),
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (device?.type === MtType.SEK) {
 				return device.micLineSelection === feedback.options.selection
@@ -1695,8 +1689,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				choices: getChoicesFromEnum(MicLineSelectionAuto),
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (device?.type === MtType.SEK) {
 				return device.micLineSelectionAutoValue === feedback.options.autoValue
@@ -1729,8 +1723,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				choices: getChoicesFromEnum(CableEmulation),
 			},
 		],
-		callback: async (feedback, context) => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback) => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (device?.type === MtType.SEK) {
 				return device.cableEmulation === feedback.options.emulation
@@ -1820,8 +1814,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				useVariables: true,
 			},
 		],
-		callback: async (feedback, context): Promise<boolean> => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback): Promise<boolean> => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device?.micLqi) return false
 			return device.micLqi >= Number(feedback.options.micLqiThreshold)
@@ -1852,8 +1846,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				useVariables: true,
 			},
 		],
-		callback: async (feedback, context): Promise<boolean> => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback): Promise<boolean> => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (device?.type !== MtType.SEK || !device?.iemLqi) return false
 			return device.iemLqi >= Number(feedback.options.iemLqiThreshold)
@@ -1883,8 +1877,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				default: '-20',
 			},
 		],
-		callback: async (feedback, context): Promise<boolean> => {
-			const serial = await context.parseVariablesInString(feedback.options.serial as string)
+		callback: async (feedback): Promise<boolean> => {
+			const serial = feedback.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device?.rssi) return false
 			return device.rssi >= Number(feedback.options.rssiThreshold)
@@ -1956,14 +1950,8 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 	}
 
 	const mobileDeviceChoicesForConfirm = getMobileDeviceChoices(self.state)
-	const audioInputChoicesForConfirm = Array.from(self.state.audioInputs.values()).map((i) => ({
-		id: i.inputId,
-		label: i.name || `Input ${i.inputId + 1}`,
-	}))
-	const audioOutputChoicesForConfirm = Array.from(self.state.audioOutputs.values()).map((o) => ({
-		id: o.outputId,
-		label: `Output ${o.outputId + 1}`,
-	}))
+	const audioInputChoicesForConfirm = getAudioInputChoices(self.state)
+	const audioOutputChoicesForConfirm = getAudioOutputChoices()
 
 	feedbacks['confirmPending'] = {
 		type: 'boolean',
@@ -1982,12 +1970,14 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				id: 'actionType',
 				choices: [...CONFIRMABLE_ACTIONS],
 				default: CONFIRMABLE_ACTIONS[0].id,
+				disableAutoExpression: true,
 			},
 			// rfFrequency fields
 			{
 				type: 'dropdown',
 				label: 'RF Channel',
 				id: 'rfFrequency_rfChannel',
+				disableAutoExpression: true,
 				choices: rfChannelChoices,
 				default: 0,
 				isVisibleExpression: '$(options:actionType) === "rfFrequency"',
@@ -2005,6 +1995,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				type: 'multidropdown',
 				label: 'Audio Input',
 				id: 'setAudioInputInterface_inputId',
+				disableAutoExpression: true,
 				choices: audioInputChoicesForConfirm,
 				default: [0],
 				isVisibleExpression: '$(options:actionType) === "setAudioInputInterface"',
@@ -2013,6 +2004,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				type: 'dropdown',
 				label: 'Interface',
 				id: 'setAudioInputInterface_interface',
+				disableAutoExpression: true,
 				choices: getChoicesFromEnum(InputSource),
 				default: InputSource.Dante,
 				isVisibleExpression: '$(options:actionType) === "setAudioInputInterface"',
@@ -2021,6 +2013,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				type: 'dropdown',
 				label: 'Mode',
 				id: 'setAudioInputInterface_mode',
+				disableAutoExpression: true,
 				choices: [
 					{ id: 'On', label: 'On' },
 					{ id: 'Toggle', label: 'Toggle' },
@@ -2033,6 +2026,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				type: 'dropdown',
 				label: 'DAD',
 				id: 'dadRfBinding_dad',
+				disableAutoExpression: true,
 				choices: getChoicesFromEnum(AntennaPortId),
 				default: AntennaPortId.A,
 				isVisibleExpression: '$(options:actionType) === "dadRfBinding"',
@@ -2041,6 +2035,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				type: 'dropdown',
 				label: 'RF Channel',
 				id: 'dadRfBinding_rfChannel',
+				disableAutoExpression: true,
 				choices: [
 					{ label: 'RF Channel 1', id: RFChannels['RF Channel 1'] },
 					{ label: 'RF Channel 2', id: RFChannels['RF Channel 2'] },
@@ -2054,6 +2049,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				type: 'multidropdown',
 				label: 'Audio Output',
 				id: 'setAudioOutputInterface_outputId',
+				disableAutoExpression: true,
 				choices: audioOutputChoicesForConfirm,
 				default: [0],
 				isVisibleExpression: '$(options:actionType) === "setAudioOutputInterface"',
@@ -2062,6 +2058,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				type: 'dropdown',
 				label: 'Interface',
 				id: 'setAudioOutputInterface_interface',
+				disableAutoExpression: true,
 				choices: [...audioOutputChannelChoices],
 				default: 'commandModeAudioNetwork',
 				isVisibleExpression: '$(options:actionType) === "setAudioOutputInterface"',
@@ -2070,6 +2067,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				type: 'dropdown',
 				label: 'Command Mode',
 				id: 'setAudioOutputInterface_context',
+				disableAutoExpression: true,
 				choices: [...audioOutputCommandContextChoices],
 				default: 'disabled',
 				isVisibleExpression: '$(options:actionType) === "setAudioOutputInterface"',
@@ -2078,6 +2076,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				type: 'dropdown',
 				label: 'Mode',
 				id: 'setAudioOutputInterface_mode',
+				disableAutoExpression: true,
 				choices: [
 					{ id: 'On', label: 'On' },
 					{ id: 'Off', label: 'Off' },
@@ -2093,6 +2092,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				type: 'dropdown',
 				label: 'RF Channel',
 				id: 'setRfChannelState_rfChannel',
+				disableAutoExpression: true,
 				choices: rfChannelChoices,
 				default: 0,
 				isVisibleExpression: '$(options:actionType) === "setRfChannelState"',
@@ -2101,6 +2101,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				type: 'dropdown',
 				label: 'RF Channel State',
 				id: 'setRfChannelState_state',
+				disableAutoExpression: true,
 				choices: getChoicesFromEnum(RfState),
 				default: RfState.Active,
 				isVisibleExpression: '$(options:actionType) === "setRfChannelState"',

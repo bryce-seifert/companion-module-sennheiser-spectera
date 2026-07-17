@@ -1,5 +1,10 @@
-import { CompanionPresetDefinitions } from '@companion-module/base'
-import { SpecteraInstance } from './main.js'
+import type {
+	CompanionPresetDefinitions,
+	CompanionSimplePresetDefinition,
+	CompanionPresetSection,
+	CompanionPresetGroupSimple,
+} from '@companion-module/base'
+import { SpecteraInstance, type SpecteraInstanceTypes } from './main.js'
 import { audioOutputChannelChoices, Color, getExistingMicAudiolinkModeFromState, STEREO_INPUT_OFFSET } from './utils.js'
 import {
 	RFChannels,
@@ -16,7 +21,7 @@ import {
 	MtState,
 } from './types.js'
 
-/** Base layer: connected mobile device disconnected → default (black). */
+//Base layer: connected mobile device disconnected → default (black).
 function mobileDisconnectedFeedback(serial: string | undefined) {
 	if (!serial) return []
 	return [
@@ -29,8 +34,82 @@ function mobileDisconnectedFeedback(serial: string | undefined) {
 	]
 }
 
+//Intermediate preset entry used while generating presets
+type RawPresetEntry = ({ category: string } & CompanionSimplePresetDefinition<SpecteraInstanceTypes>) | RawTextHeader
+interface RawTextHeader {
+	type: 'text'
+	category: string
+	name: string
+	text: string
+}
+
+function slugify(value: string): string {
+	return value
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-+|-+$/g, '')
+}
+
+function buildPresetStructure(raw: Record<string, RawPresetEntry>): {
+	structure: CompanionPresetSection<SpecteraInstanceTypes>[]
+	presets: CompanionPresetDefinitions<SpecteraInstanceTypes>
+} {
+	const presets: CompanionPresetDefinitions<SpecteraInstanceTypes> = {}
+	const sections: CompanionPresetSection<SpecteraInstanceTypes>[] = []
+	const sectionsById = new Map<string, CompanionPresetSection<SpecteraInstanceTypes>>()
+	const currentGroup = new Map<string, CompanionPresetGroupSimple<SpecteraInstanceTypes>>()
+	const usedIds = new Set<string>()
+
+	const uniqueId = (base: string): string => {
+		let id = base || 'group'
+		let n = 2
+		while (usedIds.has(id)) id = `${base}-${n++}`
+		usedIds.add(id)
+		return id
+	}
+
+	const ensureSection = (category: string): CompanionPresetSection => {
+		let section = sectionsById.get(category)
+		if (!section) {
+			section = { id: uniqueId(slugify(category)), name: category, definitions: [] }
+			sectionsById.set(category, section)
+			sections.push(section)
+		}
+		return section
+	}
+
+	for (const [key, entry] of Object.entries(raw)) {
+		if (entry.type === 'text') {
+			const section = ensureSection(entry.category)
+			const group: CompanionPresetGroupSimple = {
+				id: uniqueId(`${section.id}-${slugify(entry.name)}`),
+				type: 'simple',
+				name: entry.name,
+				presets: [],
+			}
+			;(section.definitions as CompanionPresetGroupSimple<SpecteraInstanceTypes>[]).push(group)
+			currentGroup.set(entry.category, group)
+			continue
+		}
+
+		const section = ensureSection(entry.category)
+		let group = currentGroup.get(entry.category)
+		if (!group) {
+			group = { id: uniqueId(`${section.id}-group`), type: 'simple', name: section.name, presets: [] }
+			;(section.definitions as CompanionPresetGroupSimple<SpecteraInstanceTypes>[]).push(group)
+			currentGroup.set(entry.category, group)
+		}
+		group.presets.push(key)
+
+		const { category: _category, ...preset } = entry
+		presets[key] = preset
+	}
+
+	return { structure: sections, presets }
+}
+
 export function UpdatePresets(self: SpecteraInstance): void {
-	const presets: CompanionPresetDefinitions = {}
+	const presets: Record<string, RawPresetEntry> = {}
 
 	const rfChannelChoices = [
 		{ label: 'RF Channel 1', id: 0 },
@@ -49,7 +128,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`rf${channelIndex}StateInfo`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'RF Configuration',
 			name: `${channelLabel} State Info`,
 			style: {
@@ -90,7 +169,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`rf${channelIndex}FrequencyInfo`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'RF Configuration',
 			name: `${channelLabel} Frequency`,
 			style: {
@@ -110,7 +189,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`rf${channelIndex}BackupFrequency`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'RF Configuration',
 			name: `${channelLabel} Backup Frequency`,
 			style: {
@@ -154,7 +233,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`rf${channelIndex}TxPowerInfo`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'RF Configuration',
 			name: `${channelLabel} TX Power`,
 			style: {
@@ -174,7 +253,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`rf${channelIndex}RestrictionViolationInfo`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'RF Configuration',
 			name: `${channelLabel} Restriction Violation`,
 			style: {
@@ -204,7 +283,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`rf${channelIndex}SetActive`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'RF Configuration',
 			name: `${channelLabel} ACTIVE`,
 			style: {
@@ -258,7 +337,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`rf${channelIndex}SetMuted`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'RF Configuration',
 			name: `${channelLabel} MUTE`,
 			style: {
@@ -329,7 +408,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			text: '',
 		}
 		presets[`dad${port}InterferencePower`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'RF Configuration',
 			name: `DAD ${dad} Interference Noise Level`,
 			style: {
@@ -398,7 +477,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			],
 		}
 		presets[`dad${port}Frequency`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'RF Configuration',
 			name: `DAD ${dad} Frequency`,
 			style: {
@@ -456,7 +535,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			],
 		}
 		presets[`dad${port}MainInterferers`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'RF Configuration',
 			name: `DAD ${dad} Main Interferers`,
 			style: {
@@ -525,7 +604,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			],
 		}
 		presets[`dad${port}FrequencyNoise`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'RF Configuration',
 			name: `DAD ${dad} Frequency & Noise Level`,
 			style: {
@@ -594,7 +673,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			],
 		}
 		presets[`dad${port}Temperature`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'RF Configuration',
 			name: `DAD ${dad} Temperature`,
 			style: {
@@ -648,7 +727,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			],
 		}
 		presets[`dad${port}BindingSetRF1`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'RF Configuration',
 			name: `DAD ${dad} Binding Set RF 1`,
 			style: {
@@ -703,7 +782,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			],
 		}
 		presets[`dad${port}BindingSetRF2`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'RF Configuration',
 			name: `DAD ${dad} Binding Set RF 2`,
 			style: {
@@ -758,7 +837,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			],
 		}
 		presets[`dad${port}BindingSetScan`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'RF Configuration',
 			name: `DAD ${dad} SCAN`,
 			style: {
@@ -823,7 +902,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 	}
 	for (const input of self.state.audioInputs.values()) {
 		presets[`audioInput${input.inputId}CurrentInterface`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'Audio Inputs',
 			name: `${input.name || `Input ${input.inputId + 1}`} - Current Interface`,
 			style: {
@@ -850,7 +929,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 	}
 	for (const input of self.state.audioInputs.values()) {
 		presets[`audioInput${input.inputId}CurrentDevices`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'Audio Inputs',
 			name: `${input.name || `Input ${input.inputId + 1}`} - Current Devices`,
 			style: {
@@ -879,7 +958,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		const sourceLabel = source === InputSource.Dante ? 'Dante' : source === InputSource['MADI 1'] ? 'MADI 1' : 'MADI 2'
 		const allInputIds = Array.from(self.state.audioInputs.values()).map((input) => input.inputId)
 		presets[`audioInputAllInputsSource_${source}`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'Audio Inputs',
 			name: `All Inputs - ${sourceLabel}`,
 			style: {
@@ -946,7 +1025,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			const sourceLabel =
 				source === InputSource.Dante ? 'Dante' : source === InputSource['MADI 1'] ? 'MADI 1' : 'MADI 2'
 			presets[`audioInput${input.inputId}Source_${source}`] = {
-				type: 'button',
+				type: 'simple',
 				category: 'Audio Inputs',
 				name: `${input.name || `Input ${input.inputId + 1}`} - ${sourceLabel}`,
 				style: {
@@ -998,7 +1077,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 	}
 	for (const output of self.state.audioOutputs.values()) {
 		presets[`audioOutput${output.outputId}CurrentInterface`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'Audio Outputs',
 			name: `Output ${output.outputId + 1} - Current Interface`,
 			style: {
@@ -1025,7 +1104,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 	}
 	for (const output of self.state.audioOutputs.values()) {
 		presets[`audioOutput${output.outputId}CurrentInterfaces`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'Audio Outputs',
 			name: `Output ${output.outputId + 1} - Current Interfaces`,
 			style: {
@@ -1053,7 +1132,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 		for (const channel of audioOutputChannelChoices) {
 			presets[`audioOutput${output.outputId}Destination_${channel.id}`] = {
-				type: 'button',
+				type: 'simple',
 				category: 'Audio Outputs',
 				name: `Output ${output.outputId + 1} - ${channel.label}`,
 				style: {
@@ -1118,7 +1197,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 
 		for (const output of self.state.audioOutputs.values()) {
 			presets[`${deviceVariableId}_MicLinkMove_Source_${output.outputId}`] = {
-				type: 'button',
+				type: 'simple',
 				category: `Instrument Switch Mode`,
 				name: `${device.name} Source`,
 				style: {
@@ -1173,7 +1252,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 				continue
 			}
 			presets[`${deviceVariableId}_BackupMode_${copyDevice.mtUid}`] = {
-				type: 'button',
+				type: 'simple',
 				category: `Backup Mode`,
 				name: `${copyDevice.name} Backup Mode`,
 				style: {
@@ -1237,7 +1316,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 
 		if (device.type === MtType.SEK) {
 			presets[`${deviceVariableId}_MainInfo`] = {
-				type: 'button',
+				type: 'simple',
 				category: `${category}s`,
 				name: `${device.name} Overall Status`,
 				style: {
@@ -1296,7 +1375,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			}
 		} else if (device.type === MtType.SKM) {
 			presets[`${deviceVariableId}_MainInfo`] = {
-				type: 'button',
+				type: 'simple',
 				category: `${category}s`,
 				name: `${device.name} Overall Status`,
 				style: {
@@ -1325,7 +1404,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`${deviceVariableId}_OverallStatus`] = {
-			type: 'button',
+			type: 'simple',
 			category: `${category}s`,
 			name: `${device.name} Connection + Battery Status`,
 			style: {
@@ -1404,7 +1483,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`${deviceVariableId}_Connection`] = {
-			type: 'button',
+			type: 'simple',
 			category: `${category}s`,
 			name: `${device.name} Connection`,
 			style: {
@@ -1432,7 +1511,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`${deviceVariableId}_Battery`] = {
-			type: 'button',
+			type: 'simple',
 			category: `${category}s`,
 			name: `${device.name} Battery`,
 			style: {
@@ -1511,7 +1590,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`${deviceVariableId}_Identify`] = {
-			type: 'button',
+			type: 'simple',
 			category: `${category}s`,
 			name: `${device.name} Identify`,
 			style: {
@@ -1560,7 +1639,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`${deviceVariableId}_Rename`] = {
-			type: 'button',
+			type: 'simple',
 			category: `${category}s`,
 			name: `${device.name} Rename`,
 			style: {
@@ -1600,7 +1679,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`${deviceVariableId}_InterferenceStatus`] = {
-			type: 'button',
+			type: 'simple',
 			category: `${category}s`,
 			name: `${device.name} Interference Status`,
 			style: {
@@ -1662,7 +1741,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`${deviceVariableId}_Interference`] = {
-			type: 'button',
+			type: 'simple',
 			category: `${category}s`,
 			name: `${device.name} Interference`,
 			style: {
@@ -1743,7 +1822,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 
 		if (device.type === MtType.SEK) {
 			presets[`${deviceVariableId}_IEM_LQI`] = {
-				type: 'button',
+				type: 'simple',
 				category: `${category}s`,
 				name: `${device.name} IEM LQI`,
 				style: {
@@ -1813,7 +1892,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			}
 
 			presets[`${deviceVariableId}_HeadphoneVolumeInfo`] = {
-				type: 'button',
+				type: 'simple',
 				category: `${category}s`,
 				name: `${device.name} Headphone Vol`,
 				style: {
@@ -1872,7 +1951,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			}
 
 			presets[`${deviceVariableId}_HeadphoneVolumeUp`] = {
-				type: 'button',
+				type: 'simple',
 				category: `${category}s`,
 				name: `${device.name} Phone Vol +0.5`,
 				style: {
@@ -1933,7 +2012,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			}
 
 			presets[`${deviceVariableId}_HeadphoneVolumeDown`] = {
-				type: 'button',
+				type: 'simple',
 				category: `${category}s`,
 				name: `${device.name} Phone Vol -0.5`,
 				style: {
@@ -1994,7 +2073,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			}
 
 			presets[`${deviceVariableId}_HeadphoneVolumeSet`] = {
-				type: 'button',
+				type: 'simple',
 				category: `${category}s`,
 				name: `${device.name} Phone Vol Set -20`,
 				style: {
@@ -2054,12 +2133,9 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			}
 
 			presets[`${deviceVariableId}_HeadphoneVolumeRotary`] = {
-				type: 'button',
+				type: 'simple',
 				category: `${category}s`,
 				name: `${device.name} Phones Volume Rotary Knob`,
-				options: {
-					rotaryActions: true,
-				},
 				style: {
 					bgcolor: Color.LightGray,
 					color: Color.White,
@@ -2142,7 +2218,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`${deviceVariableId}_Mic_LQI`] = {
-			type: 'button',
+			type: 'simple',
 			category: `${category}s`,
 			name: `${device.name} Mic LQI`,
 			style: {
@@ -2212,7 +2288,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`${deviceVariableId}_GainInfo`] = {
-			type: 'button',
+			type: 'simple',
 			category: `${category}s`,
 			name: `${device.name} Gain`,
 			style: {
@@ -2243,7 +2319,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`${deviceVariableId}_GainUp`] = {
-			type: 'button',
+			type: 'simple',
 			category: `${category}s`,
 			name: `${device.name} Gain +3`,
 			style: {
@@ -2283,7 +2359,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`${deviceVariableId}_GainDown`] = {
-			type: 'button',
+			type: 'simple',
 			category: `${category}s`,
 			name: `${device.name} Gain -3`,
 			style: {
@@ -2323,7 +2399,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`${deviceVariableId}_GainSet`] = {
-			type: 'button',
+			type: 'simple',
 			category: `${category}s`,
 			name: `${device.name} Gain Set 12 dB`,
 			style: {
@@ -2363,12 +2439,9 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 
 		presets[`${deviceVariableId}_PreampGainRotary`] = {
-			type: 'button',
+			type: 'simple',
 			category: `${category}s`,
 			name: `${device.name} Preamp Gain Rotary Knob`,
-			options: {
-				rotaryActions: true,
-			},
 			style: {
 				bgcolor: Color.LightGray,
 				color: Color.White,
@@ -2428,7 +2501,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		text: '',
 	}
 	presets['baseStationState'] = {
-		type: 'button',
+		type: 'simple',
 		category: 'Base Station',
 		name: 'Base Station State',
 		style: {
@@ -2459,7 +2532,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		],
 	}
 	presets['baseStationWarnings'] = {
-		type: 'button',
+		type: 'simple',
 		category: 'Base Station',
 		name: 'Base Station Warnings',
 		style: {
@@ -2486,7 +2559,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		],
 	}
 	presets['baseStationPsu1'] = {
-		type: 'button',
+		type: 'simple',
 		category: 'Base Station',
 		name: 'Base Station PSU 1',
 		style: {
@@ -2525,7 +2598,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		],
 	}
 	presets['baseStationPsu2'] = {
-		type: 'button',
+		type: 'simple',
 		category: 'Base Station',
 		name: 'Base Station PSU 2',
 		style: {
@@ -2565,7 +2638,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 	}
 
 	presets['baseStationTemp'] = {
-		type: 'button',
+		type: 'simple',
 		category: 'Base Station',
 		name: 'Base Station Temperature',
 		style: {
@@ -2586,7 +2659,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 
 	for (let i = 1; i <= 3; i++) {
 		presets[`baseStationFan${i}`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'Base Station',
 			name: `Base Station Fan ${i}`,
 			style: {
@@ -2618,7 +2691,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			text: '',
 		}
 		presets[`${keyPrefix}_EngMode_remove`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'Engineer Mode',
 			name: `${removeLabel} Remove IEM Audio Link`,
 			style: {
@@ -2645,7 +2718,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			if (!input2) break
 			const pairLabel = `IN ${input1.inputId + 1}+${input2.inputId + 1}`
 			presets[`${keyPrefix}_EngMode_Pair_${input1.inputId}_${input2.inputId}`] = {
-				type: 'button',
+				type: 'simple',
 				category: 'Engineer Mode',
 				name: `${removeLabel} - Input ${input1.inputId + 1} + ${input2.inputId + 1}`,
 				style: {
@@ -2703,7 +2776,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			text: '',
 		}
 		presets[`${keyPrefix}_EngMode_Mono_remove`] = {
-			type: 'button',
+			type: 'simple',
 			category: 'Engineer Mode',
 			name: `${removeLabel} Remove IEM Audio Link`,
 			style: {
@@ -2726,7 +2799,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		}
 		for (const input of sortedInputsForEng) {
 			presets[`${keyPrefix}_EngMode_${input.inputId}`] = {
-				type: 'button',
+				type: 'simple',
 				category: 'Engineer Mode',
 				name: `${removeLabel} - Input ${input.inputId + 1} Engineer Mode`,
 				style: {
@@ -2802,7 +2875,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		text: '',
 	}
 	presets['audioNetworkStatus'] = {
-		type: 'button',
+		type: 'simple',
 		category: 'Base Station',
 		name: 'Audio Network Status',
 		style: {
@@ -2854,7 +2927,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 
 	// MADI 1
 	presets['madi1InputStatus'] = {
-		type: 'button',
+		type: 'simple',
 		category: 'Base Station',
 		name: 'MADI 1 Input Status',
 		style: {
@@ -2904,7 +2977,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		],
 	}
 	presets['madi1OutputStatus'] = {
-		type: 'button',
+		type: 'simple',
 		category: 'Base Station',
 		name: 'MADI 1 Output Status',
 		style: {
@@ -2956,7 +3029,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 
 	// MADI 2
 	presets['madi2InputStatus'] = {
-		type: 'button',
+		type: 'simple',
 		category: 'Base Station',
 		name: 'MADI 2 Input Status',
 		style: {
@@ -3006,7 +3079,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		],
 	}
 	presets['madi2OutputStatus'] = {
-		type: 'button',
+		type: 'simple',
 		category: 'Base Station',
 		name: 'MADI 2 Output Status',
 		style: {
@@ -3058,7 +3131,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 
 	// Wordclock
 	presets['wordclockInputStatus'] = {
-		type: 'button',
+		type: 'simple',
 		category: 'Base Station',
 		name: 'Wordclock Input Status',
 		style: {
@@ -3108,7 +3181,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		],
 	}
 	presets['wordclockOutputStatus'] = {
-		type: 'button',
+		type: 'simple',
 		category: 'Base Station',
 		name: 'Wordclock Output Status',
 		style: {
@@ -3158,5 +3231,6 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		],
 	}
 
-	self.setPresetDefinitions(presets)
+	const { structure, presets: finalPresets } = buildPresetStructure(presets)
+	self.setPresetDefinitions(structure, finalPresets)
 }

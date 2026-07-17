@@ -109,6 +109,8 @@ export class SpecteraApi extends EventEmitter {
 	private heartbeatInterval: ReturnType<typeof setInterval> | null = null
 	private lastSSEEventTime = 0
 	private subscribeStartTime = 0
+	private structureRebuildTimer: ReturnType<typeof setTimeout> | null = null
+	private static readonly STRUCTURE_REBUILD_DEBOUNCE_MS = 250
 
 	private readonly subscriptionPaths = [
 		'/api/audio/inputs',
@@ -199,7 +201,7 @@ export class SpecteraApi extends EventEmitter {
 			this.instance.log('debug', `API Request: ${method} ${path} ${body ? JSON.stringify(body) : ''}`)
 		}
 
-		const response = await fetch(url, { ...options, dispatcher: this.dispatcher } as any)
+		const response = await fetch(url, { ...options, dispatcher: this.dispatcher })
 
 		if (!response.ok) {
 			const errorText = await response.text().catch(() => 'Unknown error')
@@ -375,10 +377,32 @@ export class SpecteraApi extends EventEmitter {
 		}
 	}
 
+	// Coalesce bursts of structure changes (e.g. resources streaming in at startup) into a single
+	// rebuild of the module definitions. Rebuilding on every structureChanged event floods the host
+	// with rapid setFeedback/Action/PresetDefinitions calls, which shows up as "updateFeedbacks Call
+	// timed out" while connecting.
+	private scheduleStructureRebuild(): void {
+		if (this.structureRebuildTimer) clearTimeout(this.structureRebuildTimer)
+		this.structureRebuildTimer = setTimeout(() => {
+			this.structureRebuildTimer = null
+			if (this.destroyed) return
+			UpdateVariableDefinitions(this.instance)
+			UpdatePresets(this.instance)
+			UpdateFeedbacks(this.instance)
+			UpdateActions(this.instance)
+			UpdateVariableValues(this.instance)
+		}, SpecteraApi.STRUCTURE_REBUILD_DEBOUNCE_MS)
+	}
+
 	async disconnect(): Promise<void> {
 		this.destroyed = true
 
 		this.stopHeartbeat()
+
+		if (this.structureRebuildTimer) {
+			clearTimeout(this.structureRebuildTimer)
+			this.structureRebuildTimer = null
+		}
 
 		if (this.reconnectTimer) {
 			clearTimeout(this.reconnectTimer)
@@ -488,7 +512,7 @@ export class SpecteraApi extends EventEmitter {
 						headers: { Authorization: this.getAuthHeader() },
 						signal: AbortSignal.timeout(5000),
 						dispatcher: this.dispatcher,
-					} as any)
+					})
 					this.instance.log('debug', `Cleaned up stale subscription session ${this.staleSessionUUID}`)
 				} catch (err) {
 					this.instance.log(
@@ -552,7 +576,7 @@ export class SpecteraApi extends EventEmitter {
 		this.instance.log('debug', `API Request: GET ${url}`)
 
 		try {
-			const response = await fetch(url, { ...options, dispatcher: this.dispatcher } as any)
+			const response = await fetch(url, { ...options, dispatcher: this.dispatcher })
 			if (!response.ok) {
 				this.instance.log('warn', `Failed to start subscription: ${response.statusText}`)
 				throw new Error(`Failed to start subscription: ${response.statusText}`)
@@ -1004,11 +1028,7 @@ export class SpecteraApi extends EventEmitter {
 		}
 
 		if (structureChanged && !this.isInitializing) {
-			UpdateVariableDefinitions(this.instance)
-			UpdatePresets(this.instance)
-			UpdateFeedbacks(this.instance)
-			UpdateActions(this.instance)
-			UpdateVariableValues(this.instance)
+			this.scheduleStructureRebuild()
 		}
 
 		if (!this.isInitializing) {
@@ -1023,7 +1043,7 @@ export class SpecteraApi extends EventEmitter {
 			}
 
 			if (feedbacksToCheck.size > 0) {
-				this.instance.checkFeedbacks(...Array.from(feedbacksToCheck))
+				this.instance.checkFeedbacks(...(Array.from(feedbacksToCheck) as [string, ...string[]]))
 			}
 		}
 	}

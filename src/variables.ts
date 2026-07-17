@@ -1,3 +1,4 @@
+import type { CompanionVariableDefinitions } from '@companion-module/base'
 import type { SpecteraInstance } from './main.js'
 import type {
 	AudioInput,
@@ -499,7 +500,11 @@ export function UpdateVariableDefinitions(self: SpecteraInstance): void {
 			)
 		}
 	}
-	self.setVariableDefinitions(variables)
+	const definitions: CompanionVariableDefinitions = {}
+	for (const { variableId, name } of variables) {
+		definitions[variableId] = { name }
+	}
+	self.setVariableDefinitions(definitions)
 }
 
 export function getAudioInputIemLinkDevices(input: AudioInput, mobileDevices: Map<number, MobileDevice>): string {

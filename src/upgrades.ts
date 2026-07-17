@@ -1,12 +1,26 @@
 import type {
 	CompanionMigrationAction,
 	CompanionMigrationFeedback,
+	CompanionMigrationOptionValues,
 	CompanionStaticUpgradeProps,
 	CompanionStaticUpgradeResult,
 	CompanionStaticUpgradeScript,
 	CompanionUpgradeContext,
+	ExpressionOrValue,
+	JsonValue,
 } from '@companion-module/base'
 import type { ModuleConfig, ModuleSecrets } from './config.js'
+import { AntennaPortId, InputSource, RFChannels, RfState } from './types.js'
+
+// API 2.x stores option values as `{ isExpression, value }`. Read the underlying value...
+function readOpt(v: CompanionMigrationOptionValues[string]): JsonValue | undefined {
+	return v ? v.value : undefined
+}
+
+// ...and wrap a plain value back into the stored shape when writing.
+function plainOpt(value: JsonValue | undefined): ExpressionOrValue<JsonValue | undefined> {
+	return { isExpression: false, value }
+}
 
 // Firmware v1.4.1 - Migrate LED colors from from brightness to HEX values
 function upgradeLedColors(
@@ -39,14 +53,14 @@ function upgradeLedColors(
 
 	for (const action of props.actions) {
 		if (action.actionId === 'dadLedBrightness') {
-			const colors = legacyAntennaColors[resolveLegacyBrightness(action.options.ledBrightness)]
+			const colors = legacyAntennaColors[resolveLegacyBrightness(readOpt(action.options.ledBrightness))]
 			updatedActions.push({
 				...action,
 				actionId: 'dadConnectedStateColor',
 				options: {
 					dad: action.options.dad,
-					rfActive: colors.rfActive,
-					rfMuted: colors.rfMuted,
+					rfActive: plainOpt(colors.rfActive),
+					rfMuted: plainOpt(colors.rfMuted),
 				},
 			})
 		} else if (action.actionId === 'mobileDeviceLedBrightness') {
@@ -55,7 +69,9 @@ function upgradeLedColors(
 				actionId: 'mobileDeviceConnectedStateColor',
 				options: {
 					serial: action.options.serial,
-					connectedStateColor: legacyConnectedStateColors[resolveLegacyBrightness(action.options.ledBrightness)],
+					connectedStateColor: plainOpt(
+						legacyConnectedStateColors[resolveLegacyBrightness(readOpt(action.options.ledBrightness))],
+					),
 				},
 			})
 		}
@@ -63,14 +79,14 @@ function upgradeLedColors(
 
 	for (const feedback of props.feedbacks) {
 		if (feedback.feedbackId === 'dadLedBrightness') {
-			const colors = legacyAntennaColors[resolveLegacyBrightness(feedback.options.ledBrightness)]
+			const colors = legacyAntennaColors[resolveLegacyBrightness(readOpt(feedback.options.ledBrightness))]
 			updatedFeedbacks.push({
 				...feedback,
 				feedbackId: 'dadConnectedStateColor',
 				options: {
 					dad: feedback.options.dad,
-					rfActive: colors.rfActive,
-					rfMuted: colors.rfMuted,
+					rfActive: plainOpt(colors.rfActive),
+					rfMuted: plainOpt(colors.rfMuted),
 				},
 			})
 		} else if (feedback.feedbackId === 'mobileDeviceLedBrightness') {
@@ -79,7 +95,9 @@ function upgradeLedColors(
 				feedbackId: 'mobileDeviceConnectedStateColor',
 				options: {
 					serial: feedback.options.serial,
-					connectedStateColor: legacyConnectedStateColors[resolveLegacyBrightness(feedback.options.brightness)],
+					connectedStateColor: plainOpt(
+						legacyConnectedStateColors[resolveLegacyBrightness(readOpt(feedback.options.brightness))],
+					),
 				},
 			})
 		}
@@ -102,20 +120,20 @@ function upgradeAudioOutputCommandContext(
 
 	for (const action of props.actions) {
 		if (action.actionId === 'setAudioOutputInterface' && action.options.context === undefined) {
-			action.options.context = 'disabled'
+			action.options.context = plainOpt('disabled')
 			updatedActions.push(action)
 		}
 	}
 
 	for (const feedback of props.feedbacks) {
 		if (feedback.feedbackId === 'audioOutputInterface' && feedback.options.context === undefined) {
-			feedback.options.context = 'disabled'
+			feedback.options.context = plainOpt('disabled')
 			updatedFeedbacks.push(feedback)
 		} else if (
 			feedback.feedbackId === 'confirmPending' &&
 			feedback.options.setAudioOutputInterface_context === undefined
 		) {
-			feedback.options.setAudioOutputInterface_context = 'disabled'
+			feedback.options.setAudioOutputInterface_context = plainOpt('disabled')
 			updatedFeedbacks.push(feedback)
 		}
 	}
@@ -150,14 +168,14 @@ function upgradeAudioInputSourceValues(
 		if (action.actionId !== 'setAudioInputInterface') continue
 
 		let changed = false
-		const nextInterface = migrateInputSource(action.options.interface)
+		const nextInterface = migrateInputSource(readOpt(action.options.interface))
 		if (nextInterface !== undefined) {
-			action.options.interface = nextInterface
+			action.options.interface = plainOpt(nextInterface)
 			changed = true
 		}
-		const nextToggle = migrateInputSource(action.options.toggleInterface)
+		const nextToggle = migrateInputSource(readOpt(action.options.toggleInterface))
 		if (nextToggle !== undefined) {
-			action.options.toggleInterface = nextToggle
+			action.options.toggleInterface = plainOpt(nextToggle)
 			changed = true
 		}
 		if (changed) updatedActions.push(action)
@@ -165,15 +183,15 @@ function upgradeAudioInputSourceValues(
 
 	for (const feedback of props.feedbacks) {
 		if (feedback.feedbackId === 'audioInputInterface') {
-			const nextInterface = migrateInputSource(feedback.options.interface)
+			const nextInterface = migrateInputSource(readOpt(feedback.options.interface))
 			if (nextInterface !== undefined) {
-				feedback.options.interface = nextInterface
+				feedback.options.interface = plainOpt(nextInterface)
 				updatedFeedbacks.push(feedback)
 			}
 		} else if (feedback.feedbackId === 'confirmPending') {
-			const nextInterface = migrateInputSource(feedback.options.setAudioInputInterface_interface)
+			const nextInterface = migrateInputSource(readOpt(feedback.options.setAudioInputInterface_interface))
 			if (nextInterface !== undefined) {
-				feedback.options.setAudioInputInterface_interface = nextInterface
+				feedback.options.setAudioInputInterface_interface = plainOpt(nextInterface)
 				updatedFeedbacks.push(feedback)
 			}
 		}
@@ -186,8 +204,49 @@ function upgradeAudioInputSourceValues(
 	}
 }
 
+// API 2.x strictly validates every defined option against its choices. Backfill the
+// missing static-choice dropdowns with their defaults so existing controls validate again.
+const CONFIRM_PENDING_DEFAULTS: Record<string, JsonValue> = {
+	rfFrequency_rfChannel: 0,
+	setAudioInputInterface_interface: InputSource.Dante,
+	setAudioInputInterface_mode: 'On',
+	dadRfBinding_dad: AntennaPortId.A,
+	dadRfBinding_rfChannel: RFChannels['RF Channel 1'],
+	setAudioOutputInterface_interface: 'commandModeAudioNetwork',
+	setAudioOutputInterface_context: 'disabled',
+	setAudioOutputInterface_mode: 'On',
+	setRfChannelState_rfChannel: 0,
+	setRfChannelState_state: RfState.Active,
+}
+
+function upgradeConfirmPendingDefaults(
+	_context: CompanionUpgradeContext<ModuleConfig>,
+	props: CompanionStaticUpgradeProps<ModuleConfig, ModuleSecrets>,
+): CompanionStaticUpgradeResult<ModuleConfig, ModuleSecrets> {
+	const updatedFeedbacks: CompanionMigrationFeedback[] = []
+
+	for (const feedback of props.feedbacks) {
+		if (feedback.feedbackId !== 'confirmPending') continue
+		let changed = false
+		for (const [key, value] of Object.entries(CONFIRM_PENDING_DEFAULTS)) {
+			if (feedback.options[key] === undefined) {
+				feedback.options[key] = plainOpt(value)
+				changed = true
+			}
+		}
+		if (changed) updatedFeedbacks.push(feedback)
+	}
+
+	return {
+		updatedConfig: null,
+		updatedActions: [],
+		updatedFeedbacks,
+	}
+}
+
 export const UpgradeScripts: CompanionStaticUpgradeScript<ModuleConfig, ModuleSecrets>[] = [
 	upgradeLedColors,
 	upgradeAudioOutputCommandContext,
 	upgradeAudioInputSourceValues,
+	upgradeConfirmPendingDefaults,
 ]

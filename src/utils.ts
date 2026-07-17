@@ -1,4 +1,4 @@
-import { combineRgb, type InputValue } from '@companion-module/base'
+import { combineRgb, type JsonValue } from '@companion-module/base'
 import { SpecteraState } from './state.js'
 import {
 	Antenna,
@@ -28,7 +28,7 @@ function toHexByte(value: number): string {
 }
 
 /** Normalize a Companion colorpicker value to #RRGGBB for the Spectera API. */
-export function normalizeHexColor(color: InputValue | undefined): string {
+export function normalizeHexColor(color: JsonValue | undefined): string {
 	if (color === undefined || color === null || color === '') return ''
 
 	if (typeof color === 'boolean' || Array.isArray(color)) return ''
@@ -39,6 +39,8 @@ export function normalizeHexColor(color: InputValue | undefined): string {
 		const b = color & 0xff
 		return `#${toHexByte(r)}${toHexByte(g)}${toHexByte(b)}`
 	}
+
+	if (typeof color !== 'string') return ''
 
 	const trimmed = color.trim()
 	if (trimmed.startsWith('#')) {
@@ -59,13 +61,13 @@ export function normalizeHexColor(color: InputValue | undefined): string {
 	return trimmed
 }
 
-export function colorsMatch(a: string | undefined, b: InputValue | undefined): boolean {
+export function colorsMatch(a: string | undefined, b: JsonValue | undefined): boolean {
 	if (!a || b === undefined || b === '') return false
 	return normalizeHexColor(a).toLowerCase() === normalizeHexColor(b).toLowerCase()
 }
 
 /** Convert a Spectera hex color or Companion colorpicker value to a Companion bgcolor number. */
-export function toCompanionColor(color: InputValue | undefined): number | undefined {
+export function toCompanionColor(color: JsonValue | undefined): number | undefined {
 	const hex = normalizeHexColor(color)
 	if (!hex.startsWith('#') || hex.length < 7) return undefined
 
@@ -426,6 +428,24 @@ export function getExistingMicAudiolinkModeFromState(state: SpecteraState, devic
 
 // Offset added to stereo pair IDs to distinguish them from mono input IDs.
 export const STEREO_INPUT_OFFSET = 1000
+
+// Audio inputs/outputs are static resources with a fixed count
+export const AUDIO_INPUT_COUNT = 32
+export const AUDIO_OUTPUT_COUNT = 32
+
+export function getAudioInputChoices(state: SpecteraState): { id: number; label: string }[] {
+	return Array.from({ length: AUDIO_INPUT_COUNT }, (_, id) => ({
+		id,
+		label: state.audioInputs.get(id)?.name || `Input ${id + 1}`,
+	}))
+}
+
+export function getAudioOutputChoices(): { id: number; label: string }[] {
+	return Array.from({ length: AUDIO_OUTPUT_COUNT }, (_, id) => ({
+		id,
+		label: `Output ${id + 1}`,
+	}))
+}
 
 export function getAudioLinkChoices(state: SpecteraState): { id: number; label: string }[] {
 	const sortedInputs = Array.from(state.audioInputs.values()).sort((a, b) => a.inputId - b.inputId)

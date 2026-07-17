@@ -25,6 +25,8 @@ import {
 	audioOutputCommandContextChoices,
 	type AudioOutputInterfaceId,
 	type AudioOutputCommandContext,
+	getAudioInputChoices,
+	getAudioOutputChoices,
 	getAudioLinkChoices,
 	getChoicesFromEnum,
 	getDeviceBySerial,
@@ -219,10 +221,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 			{
 				type: 'multidropdown',
 				label: 'Audio Input',
-				choices: Array.from(self.state.audioInputs.values()).map((i) => ({
-					id: i.inputId,
-					label: i.name || `Input ${i.inputId + 1}`,
-				})),
+				choices: getAudioInputChoices(self.state),
 				default: [0],
 				id: 'inputId',
 			},
@@ -242,6 +241,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 				],
 				default: 'On',
 				id: 'mode',
+				disableAutoExpression: true,
 			},
 			{
 				type: 'dropdown',
@@ -249,6 +249,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 				choices: getChoicesFromEnum(InputSource),
 				default: InputSource.Dante,
 				id: 'toggleInterface',
+				disableAutoExpression: true,
 				isVisibleExpression: '$(options:mode) === "Toggle"',
 				tooltip: 'The secondary interface that will be moved to when the Toggle mode is selected.',
 			},
@@ -466,9 +467,9 @@ export function UpdateActions(self: SpecteraInstance): void {
 			},
 		],
 		description: 'Set the RF Channel for a Mobile Device',
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device) return
 			const rfChannelId = action.options.rfChannel === -1 ? undefined : (action.options.rfChannel as number)
@@ -499,9 +500,9 @@ export function UpdateActions(self: SpecteraInstance): void {
 			},
 		],
 		description: 'Set Identify for a Mobile Device',
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device) return
 			await self.api.setMobileDevice(device.mtUid, {
@@ -533,9 +534,9 @@ export function UpdateActions(self: SpecteraInstance): void {
 			},
 		],
 		description: 'Set Sleep state for a Mobile Device',
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device) return
 			await self.api.setMobileDevice(device.mtUid, {
@@ -564,9 +565,9 @@ export function UpdateActions(self: SpecteraInstance): void {
 			},
 		],
 		description: 'Set Command Behavior for a Mobile Device',
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device) return
 			await self.api.setMobileDevice(device.mtUid, {
@@ -596,9 +597,9 @@ export function UpdateActions(self: SpecteraInstance): void {
 			},
 		],
 		description: 'Set the Connected State LED color for a Mobile Device',
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device) return
 			await self.api.setMobileDevice(device.mtUid, {
@@ -627,6 +628,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 				],
 				default: 'set',
 				id: 'action',
+				disableAutoExpression: true,
 			},
 			{
 				type: 'textinput',
@@ -646,10 +648,10 @@ export function UpdateActions(self: SpecteraInstance): void {
 			},
 		],
 		description: 'Set Headphone Volume for a SEK Device',
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
-			let volume = Number(action.options.volume)
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			let volume: number
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 
 			if (device && device.type === MtType.SEK) {
@@ -693,6 +695,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 				],
 				default: 'set',
 				id: 'action',
+				disableAutoExpression: true,
 			},
 			{
 				type: 'textinput',
@@ -712,10 +715,10 @@ export function UpdateActions(self: SpecteraInstance): void {
 			},
 		],
 		description: 'Set Headphone Balance for a SEK Device',
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
-			let balance = Number(action.options.balance)
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			let balance: number
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 
 			if (device && device.type === MtType.SEK) {
@@ -752,6 +755,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 				],
 				default: 'set',
 				id: 'action',
+				disableAutoExpression: true,
 			},
 			{
 				type: 'textinput',
@@ -771,10 +775,10 @@ export function UpdateActions(self: SpecteraInstance): void {
 			},
 		],
 		description: 'Set Mic Preamp Gain for a Mobile Device',
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
-			let gain = Number(action.options.gain)
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			let gain: number
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 
 			if (device) {
@@ -818,10 +822,10 @@ export function UpdateActions(self: SpecteraInstance): void {
 			},
 		],
 		description: 'Set Mic Low Cut Frequency for a Mobile Device',
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
 			let frequency = action.options.frequency as number
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device) return
 
@@ -856,9 +860,9 @@ export function UpdateActions(self: SpecteraInstance): void {
 			},
 		],
 		description: 'Set Cable Emulation for a SEK Device',
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device) return
 			await self.api.setMobileDevice(device.mtUid, {
@@ -887,9 +891,9 @@ export function UpdateActions(self: SpecteraInstance): void {
 			},
 		],
 		description: 'Set Mic/Line Selection for a SEK Device',
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device) return
 			await self.api.setMobileDevice(device.mtUid, {
@@ -924,9 +928,9 @@ export function UpdateActions(self: SpecteraInstance): void {
 			},
 		],
 		description: 'Set Mic Test Tone for a Mobile Device',
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device) return
 			const level = Number(action.options.level)
@@ -957,12 +961,12 @@ export function UpdateActions(self: SpecteraInstance): void {
 			},
 		],
 		description: 'Set Name for a Mobile Device',
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device) return
-			const rawName = await context.parseVariablesInString(action.options.name as string)
+			const rawName = action.options.name as string
 			const sanitizedName = sanitizeMobileDeviceName(rawName)
 			await self.api.setMobileDevice(device.mtUid, {
 				name: sanitizedName,
@@ -991,6 +995,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 				choices: audioLinkChoices,
 				default: audioLinkChoices.length > 0 ? audioLinkChoices[0].id : 0,
 				id: 'inputId',
+				disableAutoExpression: true,
 			},
 			{
 				type: 'dropdown',
@@ -998,6 +1003,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 				choices: stereoModeChoices,
 				default: IemAudiolinkMode['LIVE (Stereo)'],
 				id: 'modeIdStereo',
+				disableAutoExpression: true,
 				isVisibleExpression: `$(options:inputId) >= ${STEREO_INPUT_OFFSET}`,
 			},
 			{
@@ -1006,13 +1012,14 @@ export function UpdateActions(self: SpecteraInstance): void {
 				choices: monoModeChoices,
 				default: IemAudiolinkMode['LIVE (Mono)'],
 				id: 'modeIdMono',
+				disableAutoExpression: true,
 				isVisibleExpression: `$(options:inputId) < ${STEREO_INPUT_OFFSET}`,
 			},
 		],
 		description: 'Route an Audio Input to a Mobile Device (IEM). ',
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device) return
 			const rawInputId = Number(action.options.inputId)
@@ -1036,9 +1043,9 @@ export function UpdateActions(self: SpecteraInstance): void {
 			},
 		],
 		description: 'Remove an IEM Audio Link from a Mobile Device (IEM). ',
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device) return
 			await self.api.removeIemAudioLinkFromDevice(device.mtUid)
@@ -1065,9 +1072,9 @@ export function UpdateActions(self: SpecteraInstance): void {
 				default: IemAudiolinkMode['LIVE (Stereo)'],
 			},
 		],
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device) return
 			await self.api.setMobileDeviceAudioLinkMode(device.mtUid, 'iem', Number(action.options.modeId))
@@ -1094,9 +1101,9 @@ export function UpdateActions(self: SpecteraInstance): void {
 				default: MicAudiolinkMode['LIVE (Mono)'],
 			},
 		],
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device) return
 			await self.api.setMobileDeviceAudioLinkMode(device.mtUid, 'mic', Number(action.options.modeId))
@@ -1117,10 +1124,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 			{
 				type: 'dropdown',
 				label: 'Audio Output',
-				choices: Array.from(self.state.audioOutputs.values()).map((o) => ({
-					id: o.outputId,
-					label: `Output ${o.outputId + 1}`,
-				})),
+				choices: getAudioOutputChoices(),
 				default: 0,
 				id: 'outputId',
 			},
@@ -1133,9 +1137,9 @@ export function UpdateActions(self: SpecteraInstance): void {
 			},
 		],
 		description: 'Route a Mobile Device (Mic) to an Audio Output. ',
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device) return
 			const outputId = Number(action.options.outputId)
@@ -1150,10 +1154,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 			{
 				type: 'dropdown',
 				label: 'Audio Output',
-				choices: Array.from(self.state.audioOutputs.values()).map((o) => ({
-					id: o.outputId,
-					label: `Output ${o.outputId + 1}`,
-				})),
+				choices: getAudioOutputChoices(),
 				default: 0,
 				id: 'outputId',
 			},
@@ -1181,10 +1182,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 			{
 				type: 'dropdown',
 				label: 'Audio Output',
-				choices: Array.from(self.state.audioOutputs.values()).map((o) => ({
-					id: o.outputId,
-					label: `Output ${o.outputId + 1}`,
-				})),
+				choices: getAudioOutputChoices(),
 				default: 0,
 				id: 'outputId',
 			},
@@ -1216,10 +1214,10 @@ export function UpdateActions(self: SpecteraInstance): void {
 				tooltip: 'When enabled and the output already has a link from another device, the link mode is preserved.',
 			},
 		],
-		callback: async (action, context) => {
+		callback: async (action) => {
 			const api = self.api
 			if (!api) return
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device) return
 			const outputId = Number(action.options.outputId)
@@ -1243,10 +1241,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 			{
 				type: 'multidropdown',
 				label: 'Audio Output',
-				choices: Array.from(self.state.audioOutputs.values()).map((o) => ({
-					id: o.outputId,
-					label: `Output ${o.outputId + 1}`,
-				})),
+				choices: getAudioOutputChoices(),
 				default: [0],
 				id: 'outputId',
 			},
@@ -1358,7 +1353,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 		],
 		description:
 			'Copy all shared settings from one Mobile Device to another, including copying the IEM link and moving the mic links, if present.',
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
 			if (action.options.requireConfirmation) {
 				const key = self.confirmationKey('copyAllMobileDeviceSettings', {
@@ -1367,8 +1362,8 @@ export function UpdateActions(self: SpecteraInstance): void {
 				})
 				if (!self.confirmAction(key)) return
 			}
-			const sourceSerial = await context.parseVariablesInString(action.options.sourceSerial as string)
-			const targetSerial = await context.parseVariablesInString(action.options.targetSerial as string)
+			const sourceSerial = action.options.sourceSerial as string
+			const targetSerial = action.options.targetSerial as string
 			const sourceDevice = getDeviceBySerial(self.state, sourceSerial)
 			const targetDevice = getDeviceBySerial(self.state, targetSerial)
 			if (!sourceDevice || !targetDevice) return
@@ -1408,16 +1403,16 @@ export function UpdateActions(self: SpecteraInstance): void {
 		],
 		description:
 			'Apply a set of mobile-device settings from a JSON string (typically a device’s Settings (JSON) variable).',
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
-			const serial = await context.parseVariablesInString(action.options.serial as string)
+			const serial = action.options.serial as string
 			const device = getDeviceBySerial(self.state, serial)
 			if (!device) {
 				self.log('warn', `Set Settings From JSON: Mobile Device "${serial}" not found`)
 				return
 			}
 
-			const rawJson = await context.parseVariablesInString(action.options.json as string)
+			const rawJson = action.options.json as string
 			const { payload, warnings, error } = parseMobileDeviceSettingsJson(rawJson, device)
 
 			if (error) {
@@ -1464,10 +1459,10 @@ export function UpdateActions(self: SpecteraInstance): void {
 			},
 		],
 		description: 'Copy the IEM Audio Channels from one SEK to another.',
-		callback: async (action, context) => {
+		callback: async (action) => {
 			if (!self.api) return
-			const sourceSerial = await context.parseVariablesInString(action.options.sourceSerial as string)
-			const targetSerial = await context.parseVariablesInString(action.options.targetSerial as string)
+			const sourceSerial = action.options.sourceSerial as string
+			const targetSerial = action.options.targetSerial as string
 			const sourceDevice = getDeviceBySerial(self.state, sourceSerial)
 			const targetDevice = getDeviceBySerial(self.state, targetSerial)
 			if (!sourceDevice || !targetDevice) return

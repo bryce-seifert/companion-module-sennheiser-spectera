@@ -1,4 +1,4 @@
-import { InstanceBase, runEntrypoint, InstanceStatus, SomeCompanionConfigField } from '@companion-module/base'
+import { InstanceBase, type InstanceTypes, InstanceStatus, SomeCompanionConfigField } from '@companion-module/base'
 import { GetConfigFields, type ModuleConfig, type ModuleSecrets } from './config.js'
 import { UpdateVariableDefinitions } from './variables.js'
 import { UpgradeScripts } from './upgrades.js'
@@ -8,7 +8,12 @@ import { SpecteraApi } from './api.js'
 import { SpecteraState } from './state.js'
 import { UpdatePresets } from './presets.js'
 
-export class SpecteraInstance extends InstanceBase<ModuleConfig, ModuleSecrets> {
+export interface SpecteraInstanceTypes extends InstanceTypes {
+	config: ModuleConfig
+	secrets: ModuleSecrets
+}
+
+export default class SpecteraInstance extends InstanceBase<SpecteraInstanceTypes> {
 	config!: ModuleConfig
 	secrets!: ModuleSecrets
 	api?: SpecteraApi
@@ -121,4 +126,4 @@ export class SpecteraInstance extends InstanceBase<ModuleConfig, ModuleSecrets> 
 	}
 }
 
-runEntrypoint(SpecteraInstance, UpgradeScripts)
+export { UpgradeScripts, SpecteraInstance }
