@@ -1460,9 +1460,10 @@ export function UpdatePresets(self: SpecteraInstance): void {
 					},
 				},
 				{
-					feedbackId: 'mobileDeviceBatteryLow',
+					headline: 'Blink red while the battery is low',
+					feedbackId: 'internal:checkExpression',
 					options: {
-						serial: device.serial,
+						expression: `$(spectera:${deviceVariableId}_battery_low) && blink(1000)`,
 					},
 					style: {
 						bgcolor: Color.SpecteraRed,
@@ -1567,9 +1568,10 @@ export function UpdatePresets(self: SpecteraInstance): void {
 					},
 				},
 				{
-					feedbackId: 'mobileDeviceBatteryLow',
+					headline: 'Blink red while the battery is low',
+					feedbackId: 'internal:checkExpression',
 					options: {
-						serial: device.serial,
+						expression: `$(spectera:${deviceVariableId}_battery_low) && blink(1000)`,
 					},
 					style: {
 						bgcolor: Color.SpecteraRed,
