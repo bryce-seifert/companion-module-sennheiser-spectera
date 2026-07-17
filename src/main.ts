@@ -1,4 +1,10 @@
-import { InstanceBase, type InstanceTypes, InstanceStatus, SomeCompanionConfigField } from '@companion-module/base'
+import {
+	InstanceBase,
+	type InstanceTypes,
+	type CompanionCompositeElementSchema,
+	InstanceStatus,
+	SomeCompanionConfigField,
+} from '@companion-module/base'
 import { GetConfigFields, type ModuleConfig, type ModuleSecrets } from './config.js'
 import { UpdateVariableDefinitions } from './variables.js'
 import { UpgradeScripts } from './upgrades.js'
@@ -7,10 +13,15 @@ import { UpdateFeedbacks } from './feedbacks.js'
 import { SpecteraApi } from './api.js'
 import { SpecteraState } from './state.js'
 import { UpdatePresets } from './presets.js'
+import { UpdateCompositeElements } from './graphics.js'
 
 export interface SpecteraInstanceTypes extends InstanceTypes {
 	config: ModuleConfig
 	secrets: ModuleSecrets
+	compositeElements: {
+		audioMeter: CompanionCompositeElementSchema<{ level: string; levelRms: string }>
+		rssiMeter: CompanionCompositeElementSchema<{ rssi: string }>
+	}
 }
 
 export default class SpecteraInstance extends InstanceBase<SpecteraInstanceTypes> {
@@ -34,6 +45,7 @@ export default class SpecteraInstance extends InstanceBase<SpecteraInstanceTypes
 			this.log('error', `Error initializing API: ${e}`)
 		})
 
+		this.updateCompositeElements()
 		this.updateActions()
 		this.updateFeedbacks()
 		this.updateVariableDefinitions()
@@ -97,6 +109,10 @@ export default class SpecteraInstance extends InstanceBase<SpecteraInstanceTypes
 
 	updatePresets(): void {
 		UpdatePresets(this)
+	}
+
+	updateCompositeElements(): void {
+		UpdateCompositeElements(this)
 	}
 
 	//Module Confirmation Functions

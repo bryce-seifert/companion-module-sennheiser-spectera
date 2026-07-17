@@ -1,8 +1,10 @@
-import type {
-	CompanionPresetDefinitions,
-	CompanionSimplePresetDefinition,
-	CompanionPresetSection,
-	CompanionPresetGroupSimple,
+import {
+	ButtonGraphicsDecorationType,
+	type CompanionPresetDefinitions,
+	type CompanionSimplePresetDefinition,
+	type CompanionLayeredButtonPresetDefinition,
+	type CompanionPresetSection,
+	type CompanionPresetGroupSimple,
 } from '@companion-module/base'
 import { SpecteraInstance, type SpecteraInstanceTypes } from './main.js'
 import { audioOutputChannelChoices, Color, getExistingMicAudiolinkModeFromState, STEREO_INPUT_OFFSET } from './utils.js'
@@ -35,7 +37,10 @@ function mobileDisconnectedFeedback(serial: string | undefined) {
 }
 
 //Intermediate preset entry used while generating presets
-type RawPresetEntry = ({ category: string } & CompanionSimplePresetDefinition<SpecteraInstanceTypes>) | RawTextHeader
+type RawPresetEntry =
+	| ({ category: string } & CompanionSimplePresetDefinition<SpecteraInstanceTypes>)
+	| ({ category: string } & CompanionLayeredButtonPresetDefinition<SpecteraInstanceTypes>)
+	| RawTextHeader
 interface RawTextHeader {
 	type: 'text'
 	category: string
@@ -3231,6 +3236,48 @@ export function UpdatePresets(self: SpecteraInstance): void {
 				},
 			},
 		],
+	}
+
+	//Layered Presets
+	presets['audioMetersHeader'] = {
+		type: 'text',
+		category: 'Audio Meters',
+		name: 'Audio Meters - Dante Input (Peak)',
+		text: '',
+	}
+	for (let ch = 1; ch <= 8; ch++) {
+		presets[`audioMeterDanteIn${ch}Peak`] = {
+			type: 'layered',
+			category: 'Audio Meters',
+			name: `Audio Meter - Dante In ${ch} (Peak)`,
+			canvas: {
+				decoration: ButtonGraphicsDecorationType.None,
+			},
+			elements: [
+				{
+					type: 'box',
+					opacity: 100,
+					name: `Background`,
+					color: Color.Black,
+				},
+				{
+					type: 'composite',
+					elementId: 'audioMeter',
+					width: 10,
+					height: 85,
+					x: 70,
+					y: 8,
+					opacity: 100,
+					name: `Audio Meter`,
+					options: {
+						level: { isExpression: true, value: `$(spectera:audio_level_dante_in_${ch}_rms)` },
+						levelRms: { isExpression: true, value: `$(spectera:audio_level_dante_in_${ch}_peak)` },
+					},
+				},
+			],
+			feedbacks: [],
+			steps: [{ down: [], up: [] }],
+		}
 	}
 
 	const { structure, presets: finalPresets } = buildPresetStructure(presets)

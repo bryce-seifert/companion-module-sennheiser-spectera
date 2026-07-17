@@ -82,6 +82,9 @@ export function toCompanionColor(color: JsonValue | undefined): number | undefin
 export const Color = {
 	Black: combineRgb(0, 0, 0),
 	White: combineRgb(255, 255, 255),
+	Red: combineRgb(255, 0, 0),
+	Green: combineRgb(0, 255, 0),
+	Yellow: combineRgb(255, 255, 0),
 	LightGray: combineRgb(72, 72, 72),
 	DarkGreen: combineRgb(75, 127, 76),
 	SpecteraDarkGray: combineRgb(40, 41, 46),
