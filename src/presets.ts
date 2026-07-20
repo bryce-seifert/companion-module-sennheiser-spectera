@@ -119,6 +119,11 @@ const levelExpr = (base: string, ch: number, kind: 'rms' | 'peak') => ({
 	isExpression: true as const,
 	value: `$(spectera:audio_level_${base}_${ch}_${kind})`,
 })
+// Per-device level (mic/iem), routing-independent
+const deviceLevelExpr = (deviceVariableId: string, source: 'mic' | 'iem', kind: 'rms' | 'peak') => ({
+	isExpression: true as const,
+	value: `$(spectera:${deviceVariableId}_${source}_level_${kind})`,
+})
 
 interface ChannelMeterBankOptions {
 	variableBase: string // matches audio_level_<variableBase>_<N>_(peak|rms), e.g. 'dante_in'
@@ -1427,10 +1432,10 @@ export function UpdatePresets(self: SpecteraInstance): void {
 					opacity: 100,
 					options: {
 						channelMode: 'mono',
-						ch1Level: '-90',
-						ch1Peak: '-90',
-						ch2Level: '-90',
-						ch2Peak: '-90',
+						ch1Level: deviceLevelExpr(deviceVariableId, device.type === MtType.SEK ? 'iem' : 'mic', 'rms'),
+						ch1Peak: deviceLevelExpr(deviceVariableId, device.type === MtType.SEK ? 'iem' : 'mic', 'peak'),
+						ch2Level: '',
+						ch2Peak: '',
 					},
 				},
 				{

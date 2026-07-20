@@ -34,6 +34,7 @@ import {
 	getAudioOutputSourceName,
 	getAudioOutputActiveChannels,
 	getAudioInputIemLinkDevices,
+	getMobileDeviceLevelVariables,
 } from './variables.js'
 import { UpdatePresets } from './presets.js'
 import { UpdateFeedbacks } from './feedbacks.js'
@@ -741,6 +742,22 @@ export class SpecteraApi extends EventEmitter {
 							this.variableCache[varName] = val
 						}
 					})
+				}
+			}
+
+			// Per-device MIC/IEM levels, resolved live so they track the device through routing changes.
+			for (const device of this.state.mobileDevices.values()) {
+				const deviceLevels = getMobileDeviceLevelVariables(
+					device,
+					this.state.audioOutputs,
+					this.state.audioInputs,
+					levels,
+				)
+				for (const [varName, val] of Object.entries(deviceLevels)) {
+					if (this.variableCache[varName] !== val) {
+						changedVariables[varName] = val
+						this.variableCache[varName] = val
+					}
 				}
 			}
 

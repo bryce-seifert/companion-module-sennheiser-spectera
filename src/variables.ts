@@ -12,8 +12,18 @@ import type {
 	BaseStationIdentity,
 	BaseStationState,
 	BaseStationSite,
+	AudioLevels,
 } from './types.js'
-import { MtType, RfState, RFChannels, RfStateStartup, MicLowCutHzSEK, MicLowCutHzSKM, MtState } from './types.js'
+import {
+	MtType,
+	RfState,
+	RFChannels,
+	RfStateStartup,
+	MicLowCutHzSEK,
+	MicLowCutHzSKM,
+	MtState,
+	InputSource,
+} from './types.js'
 import {
 	StateMap,
 	VariableValue,
@@ -389,6 +399,14 @@ export function UpdateVariableDefinitions(self: SpecteraInstance): void {
 				name: `${deviceVariableLabel} - Mic LQI`,
 			},
 			{
+				variableId: `${deviceVariableId}_mic_level_rms`,
+				name: `${deviceVariableLabel} - Mic Level RMS (dBFS)`,
+			},
+			{
+				variableId: `${deviceVariableId}_mic_level_peak`,
+				name: `${deviceVariableLabel} - Mic Level Peak (dBFS)`,
+			},
+			{
 				variableId: `${deviceVariableId}_interference`,
 				name: `${deviceVariableLabel} - Interference`,
 			},
@@ -481,6 +499,14 @@ export function UpdateVariableDefinitions(self: SpecteraInstance): void {
 				{
 					variableId: `${deviceVariableId}_iem_lqi`,
 					name: `${deviceVariableLabel} - IEM LQI`,
+				},
+				{
+					variableId: `${deviceVariableId}_iem_level_rms`,
+					name: `${deviceVariableLabel} - IEM Level RMS (dBFS)`,
+				},
+				{
+					variableId: `${deviceVariableId}_iem_level_peak`,
+					name: `${deviceVariableLabel} - IEM Level Peak (dBFS)`,
 				},
 			)
 		} else if (device.type === MtType.SKM) {
@@ -608,6 +634,66 @@ export function getAntennaVariables(
 		[`dad_${port}_mismatch`]: antenna.bindings[0]?.mismatch,
 		//[`dad_${port}_version`]: antenna.version,
 	}
+}
+
+// Resolve a device's MIC (and IEM, for SEK) levels via current routing.
+type AudioLevelField = Exclude<keyof AudioLevels, 'updateCounter'>
+
+const OUTPUT_LEVEL_FIELDS = [
+	['aoIpEnableIfCommandIsDisabled', 'aoIpOut'],
+	['madi1EnableIfCommandIsDisabled', 'madi1Out'],
+	['madi2EnableIfCommandIsDisabled', 'madi2Out'],
+] as const satisfies ReadonlyArray<readonly [keyof AudioOutput, AudioLevelField]>
+
+const INPUT_LEVEL_FIELDS: Partial<Record<InputSource, AudioLevelField>> = {
+	[InputSource.Dante]: 'aoIpIn',
+	[InputSource['MADI 1']]: 'madi1In',
+	[InputSource['MADI 2']]: 'madi2In',
+}
+
+export function getMobileDeviceLevelVariables(
+	device: MobileDevice,
+	audioOutputs: Map<number, AudioOutput>,
+	audioInputs: Map<number, AudioInput>,
+	audioLevels: AudioLevels | undefined,
+): Record<string, VariableValue> {
+	const deviceVariableId = `${device.type}_${device.serial}`
+
+	// MIC (output side): device -> AudioOutput.micAudiolinkId -> outputId on an active out-interface.
+	const values: Record<string, VariableValue> = {
+		[`${deviceVariableId}_mic_level_rms`]: -127.5,
+		[`${deviceVariableId}_mic_level_peak`]: -127.5,
+	}
+	if (audioLevels && device.micAudiolinkId != null && device.micAudiolinkId >= 0) {
+		const output = [...audioOutputs.values()].find((o) => o.micAudiolinkId === device.micAudiolinkId)
+		if (output) {
+			const field = OUTPUT_LEVEL_FIELDS.find(([flag]) => output[flag] === 'On')?.[1]
+			const level = field ? audioLevels[field] : undefined
+			if (level && output.outputId < level.rms.length) {
+				values[`${deviceVariableId}_mic_level_rms`] = level.rms[output.outputId]
+				values[`${deviceVariableId}_mic_level_peak`] = level.peak[output.outputId]
+			}
+		}
+	}
+
+	// IEM (input side, SEK only): device -> AudioInput.iemAudiolinkId -> inputId on inputSource interface.
+	if (device.type === MtType.SEK) {
+		values[`${deviceVariableId}_iem_level_rms`] = -127.5
+		values[`${deviceVariableId}_iem_level_peak`] = -127.5
+		if (audioLevels && device.iemAudiolinkId != null && device.iemAudiolinkId >= 0) {
+			const input = [...audioInputs.values()].find((i) => i.iemAudiolinkId === device.iemAudiolinkId)
+			if (input) {
+				const field = INPUT_LEVEL_FIELDS[input.inputSource]
+				const level = field ? audioLevels[field] : undefined
+				if (level && input.inputId < level.rms.length) {
+					values[`${deviceVariableId}_iem_level_rms`] = level.rms[input.inputId]
+					values[`${deviceVariableId}_iem_level_peak`] = level.peak[input.inputId]
+				}
+			}
+		}
+	}
+
+	return values
 }
 
 export function getMobileDeviceVariables(device: MobileDevice): Record<string, VariableValue> {
@@ -791,7 +877,11 @@ export function UpdateVariableValues(self: SpecteraInstance): void {
 
 	// Mobile Devices
 	for (const device of self.state.mobileDevices.values()) {
-		values = { ...values, ...getMobileDeviceVariables(device) }
+		values = {
+			...values,
+			...getMobileDeviceVariables(device),
+			...getMobileDeviceLevelVariables(device, self.state.audioOutputs, self.state.audioInputs, self.state.audioLevels),
+		}
 	}
 
 	self.setVariableValues(values)
