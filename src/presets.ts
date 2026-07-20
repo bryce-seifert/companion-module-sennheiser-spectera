@@ -113,6 +113,80 @@ function buildPresetStructure(raw: Record<string, RawPresetEntry>): {
 	return { structure: sections, presets }
 }
 
+//Reusable layered-preset primitives
+const BACKGROUND_BOX = { type: 'box', opacity: 100, name: 'Background', color: Color.Black } as const
+const levelExpr = (base: string, ch: number, kind: 'rms' | 'peak') => ({
+	isExpression: true as const,
+	value: `$(spectera:audio_level_${base}_${ch}_${kind})`,
+})
+
+interface ChannelMeterBankOptions {
+	variableBase: string // matches audio_level_<variableBase>_<N>_(peak|rms), e.g. 'dante_in'
+	label: string // shown in labels, e.g. 'Dante IN'
+	category: string
+	channelCount: number
+	mode: 'mono' | 'stereo'
+}
+
+// Mono: one button/channel. Stereo: one button per adjacent pair (1-2, 3-4, ...). Both: label + audioMeter composite.
+function buildChannelMeterBank(presets: Record<string, RawPresetEntry>, opts: ChannelMeterBankOptions): void {
+	const { variableBase, label, category, channelCount, mode } = opts
+	const stereo = mode === 'stereo'
+
+	presets[`${variableBase}${stereo ? 'Stereo' : 'Mono'}MetersHeader`] = {
+		type: 'text',
+		category,
+		name: `${label} - Meters (${stereo ? 'Stereo ' : 'Mono'})`,
+		text: '',
+	}
+
+	for (let ch = 1; stereo ? ch < channelCount : ch <= channelCount; ch += stereo ? 2 : 1) {
+		const name = stereo ? `${label} ${ch}-${ch + 1}` : `${label} ${ch}`
+		presets[`${variableBase}Meter${stereo ? 'Stereo' : ''}${ch}`] = {
+			type: 'layered',
+			category,
+			name,
+			canvas: { decoration: ButtonGraphicsDecorationType.None },
+			elements: [
+				BACKGROUND_BOX,
+				{
+					type: 'text',
+					opacity: 100,
+					name: 'Channel Label',
+					color: Color.White,
+					text: name,
+					fontsize: stereo ? 80 : 20,
+					fontsizeAllowShrink: true,
+					width: stereo ? 100 : 70,
+					height: stereo ? 22 : 100,
+					x: 0,
+					y: 0,
+					halign: stereo ? 'center' : 'left',
+				},
+				{
+					type: 'composite',
+					elementId: 'audioMeter',
+					name: 'Audio Meter',
+					opacity: 100,
+					x: stereo ? 20 : 75,
+					y: stereo ? 24 : 5,
+					width: stereo ? 60 : 20,
+					height: stereo ? 72 : 90,
+					options: {
+						channelMode: mode,
+						ch1Level: levelExpr(variableBase, ch, 'rms'),
+						ch1Peak: levelExpr(variableBase, ch, 'peak'),
+						ch2Level: stereo ? levelExpr(variableBase, ch + 1, 'rms') : '',
+						ch2Peak: stereo ? levelExpr(variableBase, ch + 1, 'peak') : '',
+					},
+				},
+			],
+			feedbacks: [],
+			steps: [{ down: [], up: [] }],
+		}
+	}
+}
+
 export function UpdatePresets(self: SpecteraInstance): void {
 	const presets: Record<string, RawPresetEntry> = {}
 
@@ -1317,6 +1391,91 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			category: `${category}s`,
 			name: `${device.name} (SN ${serial})`,
 			text: '',
+		}
+
+		//Layered Status Preset
+		presets[`${deviceVariableId}_StatusLayered`] = {
+			type: 'layered',
+			category: `${category}s`,
+			name: `${device.name} Status (Meters)`,
+			canvas: {
+				decoration: ButtonGraphicsDecorationType.None,
+			},
+			elements: [
+				BACKGROUND_BOX,
+				{
+					type: 'composite',
+					elementId: 'rssiMeter',
+					name: 'RSSI',
+					x: 0,
+					y: 0,
+					width: 15,
+					height: 100,
+					opacity: 100,
+					options: {
+						rssi: { isExpression: true, value: `$(spectera:${deviceVariableId}_rssi)` },
+					},
+				},
+				{
+					type: 'composite',
+					elementId: 'audioMeter',
+					name: 'Audio Meter',
+					x: 85,
+					y: 0,
+					width: 15,
+					height: 100,
+					opacity: 100,
+					options: {
+						channelMode: 'mono',
+						ch1Level: '-90',
+						ch1Peak: '-90',
+						ch2Level: '-90',
+						ch2Peak: '-90',
+					},
+				},
+				{
+					type: 'composite',
+					elementId: 'signalBars',
+					name: 'LQI',
+					x: 25,
+					y: 70,
+					width: 50,
+					height: 30,
+					opacity: 100,
+					options: {
+						bars: { isExpression: true, value: `$(spectera:${deviceVariableId}_iem_lqi)` },
+					},
+				},
+				{
+					type: 'text',
+					name: 'Name',
+					x: 17.5,
+					y: 0,
+					width: 65,
+					height: 70,
+					text: `$(spectera:${deviceVariableId}_name)`,
+					fontsize: 100,
+					fontsizeAllowShrink: true,
+					color: Color.White,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
+			feedbacks: [],
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'mobileDeviceIdentify',
+							options: {
+								serial: device.serial,
+								identify: 'true',
+							},
+						},
+					],
+					up: [],
+				},
+			],
 		}
 
 		if (device.type === MtType.SEK) {
@@ -3238,46 +3397,29 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		],
 	}
 
-	//Layered Presets
-	presets['audioMetersHeader'] = {
-		type: 'text',
-		category: 'Audio Meters',
-		name: 'Audio Meters - Dante Input (Peak)',
-		text: '',
-	}
-	for (let ch = 1; ch <= 8; ch++) {
-		presets[`audioMeterDanteIn${ch}Peak`] = {
-			type: 'layered',
-			category: 'Audio Meters',
-			name: `Audio Meter - Dante In ${ch} (Peak)`,
-			canvas: {
-				decoration: ButtonGraphicsDecorationType.None,
-			},
-			elements: [
-				{
-					type: 'box',
-					opacity: 100,
-					name: `Background`,
-					color: Color.Black,
-				},
-				{
-					type: 'composite',
-					elementId: 'audioMeter',
-					width: 10,
-					height: 85,
-					x: 70,
-					y: 8,
-					opacity: 100,
-					name: `Audio Meter`,
-					options: {
-						level: { isExpression: true, value: `$(spectera:audio_level_dante_in_${ch}_rms)` },
-						levelRms: { isExpression: true, value: `$(spectera:audio_level_dante_in_${ch}_peak)` },
-					},
-				},
-			],
-			feedbacks: [],
-			steps: [{ down: [], up: [] }],
+	//Layered Presets - Audio Meters
+	// One mono bank + one stereo (paired-channel) bank per "in" interface, and a mono-only bank per
+	// "out" interface. All banks share the single "Audio Meters" section (like SEKs/SKMs), split into
+	// groups by each bank's own header - not separate top-level sections.
+	const AUDIO_METERS_CATEGORY = 'Audio Meters'
+	const METER_BANK_INTERFACES: { variableBase: string; label: string; isOutput: boolean }[] = [
+		{ variableBase: 'dante_in', label: 'Dante IN', isOutput: false },
+		{ variableBase: 'dante_out', label: 'Dante OUT', isOutput: true },
+		{ variableBase: 'madi_1_in', label: 'MADI 1 IN', isOutput: false },
+		{ variableBase: 'madi_1_out', label: 'MADI 1 OUT', isOutput: true },
+		{ variableBase: 'madi_2_in', label: 'MADI 2 IN', isOutput: false },
+		{ variableBase: 'madi_2_out', label: 'MADI 2 OUT', isOutput: true },
+	]
+
+	for (const iface of METER_BANK_INTERFACES) {
+		const base = {
+			variableBase: iface.variableBase,
+			label: iface.label,
+			category: AUDIO_METERS_CATEGORY,
+			channelCount: 8,
 		}
+		buildChannelMeterBank(presets, { ...base, mode: 'mono' })
+		if (!iface.isOutput) buildChannelMeterBank(presets, { ...base, mode: 'stereo' })
 	}
 
 	const { structure, presets: finalPresets } = buildPresetStructure(presets)

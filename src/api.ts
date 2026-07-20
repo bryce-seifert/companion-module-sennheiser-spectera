@@ -743,6 +743,7 @@ export class SpecteraApi extends EventEmitter {
 					})
 				}
 			}
+
 			this.instance.checkFeedbacks('audioLevelThreshold')
 		}
 	}

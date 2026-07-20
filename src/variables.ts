@@ -400,7 +400,7 @@ export function UpdateVariableDefinitions(self: SpecteraInstance): void {
 				variableId: `${deviceVariableId}_rssi`,
 				name: `${deviceVariableLabel} - RSSI (dBm)`,
 			},
-			/* 
+			/*
 			{
 				variableId: `${deviceVariableId}_serial`,
 				name: `${deviceVariableLabel} - Serial`,

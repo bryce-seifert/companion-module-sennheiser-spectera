@@ -19,8 +19,15 @@ export interface SpecteraInstanceTypes extends InstanceTypes {
 	config: ModuleConfig
 	secrets: ModuleSecrets
 	compositeElements: {
-		audioMeter: CompanionCompositeElementSchema<{ level: string; levelRms: string }>
+		audioMeter: CompanionCompositeElementSchema<{
+			channelMode: string
+			ch1Level: string
+			ch1Peak: string
+			ch2Level: string
+			ch2Peak: string
+		}>
 		rssiMeter: CompanionCompositeElementSchema<{ rssi: string }>
+		signalBars: CompanionCompositeElementSchema<{ bars: string }>
 	}
 }
 
