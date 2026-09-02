@@ -10,7 +10,7 @@ import {
 	RfState,
 	RfStateStartup,
 	TxPower,
-	PsuState,
+	type PsuState,
 	PsuStatus,
 	MtState,
 	MtType,

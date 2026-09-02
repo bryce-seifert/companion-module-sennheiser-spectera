@@ -25,8 +25,8 @@ import {
 	InputSource,
 } from './types.js'
 import {
-	StateMap,
-	VariableValue,
+	type StateMap,
+	type VariableValue,
 	AudioNetworkStateMap,
 	MadiStateMap,
 	MadiInputStateMap,

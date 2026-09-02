@@ -3,7 +3,7 @@ import {
 	type InstanceTypes,
 	type CompanionCompositeElementSchema,
 	InstanceStatus,
-	SomeCompanionConfigField,
+	type SomeCompanionConfigField,
 } from '@companion-module/base'
 import { GetConfigFields, type ModuleConfig, type ModuleSecrets } from './config.js'
 import { UpdateVariableDefinitions } from './variables.js'

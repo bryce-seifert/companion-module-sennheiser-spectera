@@ -1,16 +1,16 @@
 import { combineRgb, type JsonValue } from '@companion-module/base'
 import { SpecteraState } from './state.js'
 import {
-	Antenna,
+	type Antenna,
 	AudiolinkModeId,
 	CableEmulation,
 	CommandBehavior,
 	MicLineSelection,
 	MicLowCutHzSEK,
 	MicLowCutHzSKM,
-	MobileDevice,
+	type MobileDevice,
 	MtType,
-	RfChannel,
+	type RfChannel,
 	RFChannels,
 } from './types.js'
 import type { LedColors } from './types.js'

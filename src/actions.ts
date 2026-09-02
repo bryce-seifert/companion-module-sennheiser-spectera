@@ -1,7 +1,7 @@
 import type { SpecteraInstance } from './main.js'
 import type { CompanionActionDefinitions } from '@companion-module/base'
 import {
-	Antenna,
+	type Antenna,
 	AntennaPortId,
 	BandwidthMode,
 	CableEmulation,

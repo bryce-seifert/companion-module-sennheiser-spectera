@@ -40,8 +40,8 @@ import { UpdatePresets } from './presets.js'
 import { UpdateFeedbacks } from './feedbacks.js'
 import { UpdateActions } from './actions.js'
 import {
-	StateMap,
-	VariableValue,
+	type StateMap,
+	type VariableValue,
 	RfChannelStateMap,
 	AntennaStateMap,
 	AudioInputStateMap,
