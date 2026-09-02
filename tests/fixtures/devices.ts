@@ -1,12 +1,39 @@
 import {
+	InputSource,
 	MicLowCutHzSEK,
 	MicLowCutHzSKM,
 	MtState,
 	MtType,
 	type MobileDevice,
+	type AudioInput,
+	type AudioOutput,
 	type SEKDevice,
 	type SKMDevice,
 } from '../../src/types.js'
+
+export function makeAudioInput(overrides: Partial<AudioInput> = {}): AudioInput {
+	return {
+		inputId: 0,
+		iemAudiolinkId: -1,
+		inputSource: InputSource.Dante,
+		name: 'Input 1',
+		...overrides,
+	}
+}
+
+export function makeAudioOutput(overrides: Partial<AudioOutput> = {}): AudioOutput {
+	return {
+		outputId: 0,
+		micAudiolinkId: -1,
+		aoIpEnableIfCommandIsDisabled: 'On',
+		madi1EnableIfCommandIsDisabled: 'On',
+		madi2EnableIfCommandIsDisabled: 'On',
+		aoIpEnableIfCommandIsEnabled: 'On',
+		madi1EnableIfCommandIsEnabled: 'On',
+		madi2EnableIfCommandIsEnabled: 'On',
+		...overrides,
+	}
+}
 
 export function makeSekDevice(overrides: Partial<SEKDevice> = {}): SEKDevice {
 	return {
