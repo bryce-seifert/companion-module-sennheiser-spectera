@@ -70,9 +70,10 @@ export enum InputSource {
 }
 
 export enum TempStatus {
-	Normal = 'Normal',
-	Warning = 'Warning',
-	Critical = 'Critical',
+	Normal = 'normal',
+	Low = 'low',
+	High = 'high',
+	Critical = 'critical',
 }
 
 export interface LedColors {
@@ -408,7 +409,7 @@ export interface TempState {
 
 export interface FanState {
 	fanId: string
-	errorState: { value: boolean }
+	errorState: { value: string }
 }
 
 export interface HealthState {

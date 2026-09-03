@@ -441,11 +441,11 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 		],
 		callback: async (feedback) => {
 			const antennaTemperature = self.state.antennas.get(feedback.options.dad as AntennaPortId)?.temperature
-			if (!antennaTemperature) return false
+			if (antennaTemperature === undefined) return false
 			if (feedback.options.temperatureUnit === 'celsius') {
 				return antennaTemperature > (feedback.options.temperature as number)
 			} else {
-				return antennaTemperature > ((feedback.options.temperature as number) * 9) / 5 + 32
+				return (antennaTemperature * 9) / 5 + 32 > (feedback.options.temperature as number)
 			}
 		},
 	}
