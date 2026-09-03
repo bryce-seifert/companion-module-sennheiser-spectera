@@ -24,7 +24,7 @@ import type {
 	InterfaceStatusMadi,
 	InterfaceStatusWordclock,
 } from './types.js'
-import { MtType } from './types.js'
+import { InputSource, MtType } from './types.js'
 import { getAntennaFrequency, getExistingMicAudiolinkModeFromState, getPortableMobileDeviceSettings } from './utils.js'
 import type { SpecteraState } from './state.js'
 import { Agent, Dispatcher } from 'undici'
@@ -80,7 +80,14 @@ function isActiveAudioLinkId(id: number | undefined): boolean {
  * Translate an audio input object coming off the Base Station into the module's canonical form.
  */
 function normalizeAudioInput(raw: AudioInput & { source?: unknown }): AudioInput {
-	raw.inputSource = raw.inputSource ?? raw.source
+	if (raw.inputSource === undefined) {
+		const legacySources: Record<string, InputSource> = {
+			dante: InputSource.Dante,
+			madi1: InputSource['MADI 1'],
+			madi2: InputSource['MADI 2'],
+		}
+		raw.inputSource = legacySources[String(raw.source).toLowerCase()] ?? (raw.source as InputSource)
+	}
 	return raw
 }
 
@@ -1332,6 +1339,7 @@ export class SpecteraApi extends EventEmitter {
 		const prevDeviceIemLinkId = mobileDevice.type === MtType.SEK ? mobileDevice.iemAudiolinkId : undefined
 
 		let audiolinkId = audioInput.iemAudiolinkId
+		let createdAudioLink = false
 
 		if (audiolinkId < 0) {
 			// Create new Audio Link
@@ -1350,6 +1358,7 @@ export class SpecteraApi extends EventEmitter {
 					modeId: modeId,
 					rfChannelId: mobileDevice.rfChannelId,
 				})
+				createdAudioLink = true
 				this.instance.log('debug', `Created new Audio Link ${audiolinkId}`)
 
 				// Assign to Audio Input first
@@ -1358,6 +1367,7 @@ export class SpecteraApi extends EventEmitter {
 				})
 			} catch (error) {
 				this.instance.log('error', `Audio Routing: Failed to create Audio Link: ${error}`)
+				if (createdAudioLink) await this.cleanupAudioLink(audiolinkId, {}, 'Audio Routing rollback')
 				return
 			}
 		} else {
@@ -1397,6 +1407,7 @@ export class SpecteraApi extends EventEmitter {
 		}
 
 		let audiolinkId = mobileDevice.micAudiolinkId
+		let createdAudioLink = false
 		if (isActiveAudioLinkId(audiolinkId)) {
 			const existingId = audiolinkId!
 			this.instance.log('debug', `Routing: Using existing Audio Link ${existingId} from Mobile Device`)
@@ -1420,6 +1431,7 @@ export class SpecteraApi extends EventEmitter {
 					modeId: modeId,
 					rfChannelId: mobileDevice.rfChannelId,
 				})
+				createdAudioLink = true
 				this.instance.log('debug', `Created new Audio Link ${audiolinkId}`)
 			} catch (error) {
 				this.instance.log('warn', `Audio Routing: Failed to create Audio Link: ${error}`)
@@ -1464,12 +1476,14 @@ export class SpecteraApi extends EventEmitter {
 			}
 		}
 
+		let deviceAssigned = mobileDevice.micAudiolinkId === audiolinkId
 		try {
 			if (mobileDevice.micAudiolinkId !== audiolinkId) {
 				await this.setMobileDevice(mtUid, {
 					micAudiolinkId: audiolinkId,
 				})
 				mobileDevice.micAudiolinkId = audiolinkId ?? -1 // Optimistic update
+				deviceAssigned = true
 			}
 		} catch (error) {
 			this.instance.log('warn', `Audio Routing: Failed to assign Audio Link to Mobile Device: ${error}`)
@@ -1488,6 +1502,9 @@ export class SpecteraApi extends EventEmitter {
 			)
 		} catch (error) {
 			this.instance.log('warn', `Audio Routing: Failed to assign Audio Link to Audio Output: ${error}`)
+			if (createdAudioLink && !deviceAssigned) {
+				await this.cleanupAudioLink(audiolinkId, {}, 'Audio Routing rollback')
+			}
 		}
 	}
 
@@ -1737,6 +1754,7 @@ export class SpecteraApi extends EventEmitter {
 			this.instance.log('debug', `Copied IEM Mix from ${sourceMtUid} to ${targetMtUid}`)
 		} catch (error) {
 			this.instance.log('warn', `Copy IEM Mix: Failed to assign Audio Link: ${error}`)
+			return
 		}
 
 		if (isActiveAudioLinkId(prevTargetIemLinkId) && prevTargetIemLinkId !== iemAudiolinkId) {
