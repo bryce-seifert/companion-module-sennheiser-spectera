@@ -1448,7 +1448,10 @@ export function UpdatePresets(self: SpecteraInstance): void {
 					height: 30,
 					opacity: 100,
 					options: {
-						bars: { isExpression: true, value: `$(spectera:${deviceVariableId}_iem_lqi)` },
+						bars: {
+							isExpression: true,
+							value: `$(spectera:${deviceVariableId}_${device.type === MtType.SEK ? 'iem' : 'mic'}_lqi)`,
+						},
 					},
 				},
 				{

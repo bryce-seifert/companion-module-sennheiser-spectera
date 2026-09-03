@@ -65,5 +65,7 @@ describe('preset generation', () => {
 		)
 		expect(presets['SEK_SEK-010_IEM_LQI']).toBeDefined()
 		expect(presets['SKM_SKM-011_IEM_LQI']).toBeUndefined()
+		expect(presets['SEK_SEK-010_StatusLayered'].elements[3].options.bars.value).toBe('$(spectera:SEK_SEK-010_iem_lqi)')
+		expect(presets['SKM_SKM-011_StatusLayered'].elements[3].options.bars.value).toBe('$(spectera:SKM_SKM-011_mic_lqi)')
 	})
 })
