@@ -4,6 +4,26 @@ import { getAudioOutputActiveChannels, getMobileDeviceLevelVariables } from '../
 import { makeAudioInput, makeAudioOutput, makeSekDevice, makeSkmDevice } from '../fixtures/devices.js'
 
 describe('mobile device audio-level variables', () => {
+	it('resolves both MIC and IEM metering when their active link ID is zero', () => {
+		const device = makeSekDevice({ serial: 'ZERO', micAudiolinkId: 0, iemAudiolinkId: 0 })
+		const outputs = new Map([
+			[0, makeAudioOutput({ outputId: 0, micAudiolinkId: 0, aoIpEnableIfCommandIsDisabled: 'On' })],
+		])
+		const inputs = new Map([[0, makeAudioInput({ inputId: 0, iemAudiolinkId: 0, inputSource: InputSource.Dante })]])
+		const levels: AudioLevels = {
+			updateCounter: 1,
+			aoIpOut: { rms: [-12], peak: [-6] },
+			aoIpIn: { rms: [-20], peak: [-10] },
+		}
+
+		expect(getMobileDeviceLevelVariables(device, outputs, inputs, levels)).toEqual({
+			SEK_ZERO_mic_level_rms: -12,
+			SEK_ZERO_mic_level_peak: -6,
+			SEK_ZERO_iem_level_rms: -20,
+			SEK_ZERO_iem_level_peak: -10,
+		})
+	})
+
 	it('resolves routed MIC and IEM levels from their active interfaces', () => {
 		const device = makeSekDevice({ serial: 'SEK-123', micAudiolinkId: 10, iemAudiolinkId: 20 })
 		const outputs = new Map([

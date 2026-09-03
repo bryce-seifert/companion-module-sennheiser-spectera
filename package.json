@@ -14,6 +14,7 @@
 		"lint:raw": "eslint",
 		"lint": "run lint:raw .",
 		"test": "vitest run --typecheck.enabled",
+		"test:live": "vitest run --typecheck.enabled tests/integration/live-device.spec.ts",
 		"test:watch": "vitest --typecheck.enabled",
 		"test:coverage": "vitest run --typecheck.enabled --coverage",
 		"check": "run format:check && run lint && run test"
