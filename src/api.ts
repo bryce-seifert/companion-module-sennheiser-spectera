@@ -107,7 +107,7 @@ export class SpecteraApi extends EventEmitter {
 	private readonly dispatcher: Dispatcher
 	private variableCache: Record<string, string | number | boolean | undefined> = {}
 	private lastLevelUpdateTime = 0
-	private static readonly LEVEL_UPDATE_INTERVAL_MS = 150
+	private static readonly LEVEL_UPDATE_INTERVAL_MS = 50
 	private isInitializing = false
 	private readonly requestQueue: { add: <T>(fn: () => Promise<T>) => Promise<T> }
 	private readonly routingQueue: { add: <T>(fn: () => Promise<T>) => Promise<T> }
