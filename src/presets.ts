@@ -18,6 +18,7 @@ import {
 	type MobileDevice,
 	type SEKDevice,
 	InterfaceInputStatus,
+	Interference,
 	MicAudiolinkMode,
 	InputSource,
 	MtState,
@@ -1992,7 +1993,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 					feedbackId: 'mobileDeviceInterference',
 					options: {
 						serial: device.serial,
-						severity: 'High',
+						severity: Interference.High,
 					},
 					style: {
 						bgcolor: Color.SpecteraRed,
@@ -2002,7 +2003,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 					feedbackId: 'mobileDeviceInterference',
 					options: {
 						serial: device.serial,
-						severity: 'Medium',
+						severity: Interference.Mid,
 					},
 					style: {
 						bgcolor: Color.SpecteraYellow,
@@ -2012,7 +2013,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 					feedbackId: 'mobileDeviceInterference',
 					options: {
 						serial: device.serial,
-						severity: 'Low',
+						severity: Interference.Low,
 					},
 					style: {
 						bgcolor: Color.DarkGreen,
@@ -2022,7 +2023,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 					feedbackId: 'mobileDeviceInterference',
 					options: {
 						serial: device.serial,
-						severity: 'None',
+						severity: Interference.None,
 					},
 					style: {
 						bgcolor: Color.SpecteraGreen,
