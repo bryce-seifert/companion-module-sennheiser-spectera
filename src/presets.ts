@@ -119,10 +119,10 @@ const levelExpr = (base: string, ch: number, kind: 'rms' | 'peak') => ({
 	isExpression: true as const,
 	value: `$(spectera:audio_level_${base}_${ch}_${kind})`,
 })
-// Per-device level (mic/iem), routing-independent
-const deviceLevelExpr = (deviceVariableId: string, source: 'mic' | 'iem', kind: 'rms' | 'peak') => ({
+// Per-device level (mic/iem), routing-independent. Channel 2 only exists on a stereo IEM link.
+const deviceLevelExpr = (deviceVariableId: string, source: 'mic' | 'iem', kind: 'rms' | 'peak', channel: 1 | 2) => ({
 	isExpression: true as const,
-	value: `$(spectera:${deviceVariableId}_${source}_level_${kind})`,
+	value: `$(spectera:${deviceVariableId}_${source}_level_${channel === 2 ? '2_' : ''}${kind})`,
 })
 
 interface ChannelMeterBankOptions {
@@ -189,6 +189,108 @@ function buildChannelMeterBank(presets: Record<string, RawPresetEntry>, opts: Ch
 			feedbacks: [],
 			steps: [{ down: [], up: [] }],
 		}
+	}
+}
+
+interface DeviceStatusMeterOptions {
+	deviceVariableId: string
+	category: string
+	name: string
+	serial: string | undefined
+	// Which of the device's links is metered; also picks the LQI shown by the signal bars.
+	source: 'mic' | 'iem'
+	stereo: boolean
+}
+
+// Status button for one mobile device: RSSI gauge, name, LQI bars and a meter for one of its links.
+function buildDeviceStatusMeterPreset(opts: DeviceStatusMeterOptions): RawPresetEntry {
+	const { deviceVariableId, category, name, serial, source, stereo } = opts
+
+	return {
+		type: 'layered',
+		category,
+		name,
+		canvas: {
+			decoration: ButtonGraphicsDecorationType.None,
+		},
+		elements: [
+			BACKGROUND_BOX,
+			{
+				type: 'composite',
+				elementId: 'rssiMeter',
+				name: 'RSSI',
+				x: 5,
+				y: 5,
+				width: 15,
+				height: 90,
+				opacity: 100,
+				options: {
+					rssi: { isExpression: true, value: `$(spectera:${deviceVariableId}_rssi)` },
+				},
+			},
+			{
+				type: 'composite',
+				elementId: 'audioMeter',
+				name: 'Audio Meter',
+				x: 80,
+				y: 5,
+				width: 15,
+				height: 90,
+				opacity: 100,
+				options: {
+					channelMode: stereo ? 'stereo' : 'mono',
+					ch1Level: deviceLevelExpr(deviceVariableId, source, 'rms', 1),
+					ch1Peak: deviceLevelExpr(deviceVariableId, source, 'peak', 1),
+					ch2Level: stereo ? deviceLevelExpr(deviceVariableId, source, 'rms', 2) : '',
+					ch2Peak: stereo ? deviceLevelExpr(deviceVariableId, source, 'peak', 2) : '',
+				},
+			},
+			{
+				type: 'composite',
+				elementId: 'signalBars',
+				name: 'LQI',
+				x: 35,
+				y: 65,
+				width: 30,
+				height: 30,
+				opacity: 100,
+				options: {
+					bars: {
+						isExpression: true,
+						value: `$(spectera:${deviceVariableId}_${source}_lqi)`,
+					},
+				},
+			},
+			{
+				type: 'text',
+				name: 'Name',
+				x: 20,
+				y: 5,
+				width: 60,
+				height: 60,
+				text: `$(spectera:${deviceVariableId}_name)`,
+				fontsize: 100,
+				fontsizeAllowShrink: true,
+				color: Color.White,
+				halign: 'center',
+				valign: 'center',
+			},
+		],
+		feedbacks: [],
+		steps: [
+			{
+				down: [
+					{
+						actionId: 'mobileDeviceIdentify',
+						options: {
+							serial,
+							identify: 'true',
+						},
+					},
+				],
+				up: [],
+			},
+		],
 	}
 }
 
@@ -1398,92 +1500,38 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			text: '',
 		}
 
-		//Layered Status Preset
-		presets[`${deviceVariableId}_StatusLayered`] = {
-			type: 'layered',
+		//Layered Status Presets: an SKM only meters its mic, an SEK meters its mic or its IEM (mono or stereo).
+		const statusMeterBase = {
+			deviceVariableId,
 			category: `${category}s`,
-			name: `${device.name} Status (Meters)`,
-			canvas: {
-				decoration: ButtonGraphicsDecorationType.None,
-			},
-			elements: [
-				BACKGROUND_BOX,
-				{
-					type: 'composite',
-					elementId: 'rssiMeter',
-					name: 'RSSI',
-					x: 5,
-					y: 5,
-					width: 15,
-					height: 90,
-					opacity: 100,
-					options: {
-						rssi: { isExpression: true, value: `$(spectera:${deviceVariableId}_rssi)` },
-					},
-				},
-				{
-					type: 'composite',
-					elementId: 'audioMeter',
-					name: 'Audio Meter',
-					x: 80,
-					y: 5,
-					width: 15,
-					height: 90,
-					opacity: 100,
-					options: {
-						channelMode: 'mono',
-						ch1Level: deviceLevelExpr(deviceVariableId, device.type === MtType.SEK ? 'iem' : 'mic', 'rms'),
-						ch1Peak: deviceLevelExpr(deviceVariableId, device.type === MtType.SEK ? 'iem' : 'mic', 'peak'),
-						ch2Level: '',
-						ch2Peak: '',
-					},
-				},
-				{
-					type: 'composite',
-					elementId: 'signalBars',
-					name: 'LQI',
-					x: 35,
-					y: 65,
-					width: 30,
-					height: 30,
-					opacity: 100,
-					options: {
-						bars: {
-							isExpression: true,
-							value: `$(spectera:${deviceVariableId}_${device.type === MtType.SEK ? 'iem' : 'mic'}_lqi)`,
-						},
-					},
-				},
-				{
-					type: 'text',
-					name: 'Name',
-					x: 20,
-					y: 5,
-					width: 60,
-					height: 60,
-					text: `$(spectera:${deviceVariableId}_name)`,
-					fontsize: 100,
-					fontsizeAllowShrink: true,
-					color: Color.White,
-					halign: 'center',
-					valign: 'center',
-				},
-			],
-			feedbacks: [],
-			steps: [
-				{
-					down: [
-						{
-							actionId: 'mobileDeviceIdentify',
-							options: {
-								serial: device.serial,
-								identify: 'true',
-							},
-						},
-					],
-					up: [],
-				},
-			],
+			serial: device.serial,
+		}
+		if (device.type === MtType.SEK) {
+			presets[`${deviceVariableId}_StatusLayeredMic`] = buildDeviceStatusMeterPreset({
+				...statusMeterBase,
+				name: `${device.name} Status (Mic Meter)`,
+				source: 'mic',
+				stereo: false,
+			})
+			presets[`${deviceVariableId}_StatusLayeredIem`] = buildDeviceStatusMeterPreset({
+				...statusMeterBase,
+				name: `${device.name} Status (IEM Meter)`,
+				source: 'iem',
+				stereo: false,
+			})
+			presets[`${deviceVariableId}_StatusLayeredIemStereo`] = buildDeviceStatusMeterPreset({
+				...statusMeterBase,
+				name: `${device.name} Status (IEM Meter - Stereo)`,
+				source: 'iem',
+				stereo: true,
+			})
+		} else {
+			presets[`${deviceVariableId}_StatusLayered`] = buildDeviceStatusMeterPreset({
+				...statusMeterBase,
+				name: `${device.name} Status (Meters)`,
+				source: 'mic',
+				stereo: false,
+			})
 		}
 
 		if (device.type === MtType.SEK) {

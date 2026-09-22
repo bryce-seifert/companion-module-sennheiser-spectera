@@ -2,6 +2,7 @@ import type { CompanionVariableDefinitions } from '@companion-module/base'
 import type { SpecteraInstance } from './main.js'
 import type {
 	AudioInput,
+	AudioLink,
 	AudioOutput,
 	RfChannel,
 	Antenna,
@@ -36,7 +37,12 @@ import {
 	inputSourceLabels,
 	psuStatusLabels,
 } from './state_maps.js'
-import { formatBatteryRuntimeMinutes, getAntennaFrequency, getPortableMobileDeviceSettings } from './utils.js'
+import {
+	formatBatteryRuntimeMinutes,
+	getAntennaFrequency,
+	getPortableMobileDeviceSettings,
+	isStereoAudiolinkMode,
+} from './utils.js'
 
 const rfStateStartupLabels: Record<RfStateStartup, string> = {
 	[RfStateStartup.Active]: 'Active',
@@ -502,11 +508,23 @@ export function UpdateVariableDefinitions(self: SpecteraInstance): void {
 				},
 				{
 					variableId: `${deviceVariableId}_iem_level_rms`,
-					name: `${deviceVariableLabel} - IEM Level RMS (dBFS)`,
+					name: `${deviceVariableLabel} - IEM Level Ch 1 RMS (dBFS)`,
 				},
 				{
 					variableId: `${deviceVariableId}_iem_level_peak`,
-					name: `${deviceVariableLabel} - IEM Level Peak (dBFS)`,
+					name: `${deviceVariableLabel} - IEM Level Ch 1 Peak (dBFS)`,
+				},
+				{
+					variableId: `${deviceVariableId}_iem_level_2_rms`,
+					name: `${deviceVariableLabel} - IEM Level Ch 2 RMS (dBFS)`,
+				},
+				{
+					variableId: `${deviceVariableId}_iem_level_2_peak`,
+					name: `${deviceVariableLabel} - IEM Level Ch 2 Peak (dBFS)`,
+				},
+				{
+					variableId: `${deviceVariableId}_iem_stereo`,
+					name: `${deviceVariableLabel} - IEM Link Is Stereo`,
 				},
 			)
 		} else if (device.type === MtType.SKM) {
@@ -655,6 +673,7 @@ export function getMobileDeviceLevelVariables(
 	device: MobileDevice,
 	audioOutputs: Map<number, AudioOutput>,
 	audioInputs: Map<number, AudioInput>,
+	audioLinks: Map<number, AudioLink>,
 	audioLevels: AudioLevels | undefined,
 ): Record<string, VariableValue> {
 	const deviceVariableId = `${device.type}_${device.serial}`
@@ -677,9 +696,14 @@ export function getMobileDeviceLevelVariables(
 	}
 
 	// IEM (input side, SEK only): device -> AudioInput.iemAudiolinkId -> inputId on inputSource interface.
+	// A stereo link is only assigned to its (even) left input, so ch 2 comes from the implicit next input.
 	if (device.type === MtType.SEK) {
+		const stereo = isStereoAudiolinkMode(audioLinks.get(device.iemAudiolinkId ?? -1)?.modeId)
+		values[`${deviceVariableId}_iem_stereo`] = stereo
 		values[`${deviceVariableId}_iem_level_rms`] = -127.5
 		values[`${deviceVariableId}_iem_level_peak`] = -127.5
+		values[`${deviceVariableId}_iem_level_2_rms`] = -127.5
+		values[`${deviceVariableId}_iem_level_2_peak`] = -127.5
 		if (audioLevels && device.iemAudiolinkId != null && device.iemAudiolinkId >= 0) {
 			const input = [...audioInputs.values()].find((i) => i.iemAudiolinkId === device.iemAudiolinkId)
 			if (input) {
@@ -688,6 +712,10 @@ export function getMobileDeviceLevelVariables(
 				if (level && input.inputId < level.rms.length) {
 					values[`${deviceVariableId}_iem_level_rms`] = level.rms[input.inputId]
 					values[`${deviceVariableId}_iem_level_peak`] = level.peak[input.inputId]
+				}
+				if (stereo && level && input.inputId + 1 < level.rms.length) {
+					values[`${deviceVariableId}_iem_level_2_rms`] = level.rms[input.inputId + 1]
+					values[`${deviceVariableId}_iem_level_2_peak`] = level.peak[input.inputId + 1]
 				}
 			}
 		}
@@ -880,7 +908,13 @@ export function UpdateVariableValues(self: SpecteraInstance): void {
 		values = {
 			...values,
 			...getMobileDeviceVariables(device),
-			...getMobileDeviceLevelVariables(device, self.state.audioOutputs, self.state.audioInputs, self.state.audioLevels),
+			...getMobileDeviceLevelVariables(
+				device,
+				self.state.audioOutputs,
+				self.state.audioInputs,
+				self.state.audioLinks,
+				self.state.audioLevels,
+			),
 		}
 	}
 

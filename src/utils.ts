@@ -433,6 +433,12 @@ export function getExistingMicAudiolinkModeFromState(state: SpecteraState, devic
 // Offset added to stereo pair IDs to distinguish them from mono input IDs.
 export const STEREO_INPUT_OFFSET = 1000
 
+// A stereo link sits on an even audio input index and implicitly owns the next (odd) one as its right channel.
+export function isStereoAudiolinkMode(modeId: number | undefined): boolean {
+	if (modeId === undefined) return false
+	return String(AudiolinkModeId[modeId] ?? '').includes('(Stereo)')
+}
+
 // Audio inputs/outputs are static resources with a fixed count
 export const AUDIO_INPUT_COUNT = 32
 export const AUDIO_OUTPUT_COUNT = 32

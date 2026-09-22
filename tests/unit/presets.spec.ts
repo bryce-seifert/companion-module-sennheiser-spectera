@@ -65,7 +65,38 @@ describe('preset generation', () => {
 		)
 		expect(presets['SEK_SEK-010_IEM_LQI']).toBeDefined()
 		expect(presets['SKM_SKM-011_IEM_LQI']).toBeUndefined()
-		expect(presets['SEK_SEK-010_StatusLayered'].elements[3].options.bars.value).toBe('$(spectera:SEK_SEK-010_iem_lqi)')
+		expect(presets['SEK_SEK-010_StatusLayered']).toBeUndefined()
 		expect(presets['SKM_SKM-011_StatusLayered'].elements[3].options.bars.value).toBe('$(spectera:SKM_SKM-011_mic_lqi)')
+	})
+
+	it('gives an SEK mic, mono IEM and stereo IEM status meters', () => {
+		const state = new SpecteraState()
+		state.updateMobileDevice(makeSekDevice({ mtUid: 10, serial: 'SEK-010', name: 'Artist' }))
+
+		const { presets } = generatePresets(state)
+
+		expect(presets['SEK_SEK-010_StatusLayeredMic'].elements[2].options).toMatchObject({
+			channelMode: 'mono',
+			ch1Level: { value: '$(spectera:SEK_SEK-010_mic_level_rms)' },
+			ch2Level: '',
+		})
+		expect(presets['SEK_SEK-010_StatusLayeredMic'].elements[3].options.bars.value).toBe(
+			'$(spectera:SEK_SEK-010_mic_lqi)',
+		)
+		expect(presets['SEK_SEK-010_StatusLayeredIem'].elements[2].options).toMatchObject({
+			channelMode: 'mono',
+			ch1Level: { value: '$(spectera:SEK_SEK-010_iem_level_rms)' },
+			ch2Level: '',
+		})
+		expect(presets['SEK_SEK-010_StatusLayeredIemStereo'].elements[2].options).toMatchObject({
+			channelMode: 'stereo',
+			ch1Level: { value: '$(spectera:SEK_SEK-010_iem_level_rms)' },
+			ch1Peak: { value: '$(spectera:SEK_SEK-010_iem_level_peak)' },
+			ch2Level: { value: '$(spectera:SEK_SEK-010_iem_level_2_rms)' },
+			ch2Peak: { value: '$(spectera:SEK_SEK-010_iem_level_2_peak)' },
+		})
+		expect(presets['SEK_SEK-010_StatusLayeredIemStereo'].elements[3].options.bars.value).toBe(
+			'$(spectera:SEK_SEK-010_iem_lqi)',
+		)
 	})
 })

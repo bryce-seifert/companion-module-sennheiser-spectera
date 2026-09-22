@@ -758,6 +758,7 @@ export class SpecteraApi extends EventEmitter {
 					device,
 					this.state.audioOutputs,
 					this.state.audioInputs,
+					this.state.audioLinks,
 					levels,
 				)
 				for (const [varName, val] of Object.entries(deviceLevels)) {
