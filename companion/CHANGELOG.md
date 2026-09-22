@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Layered **Status (Meters)** presets with RSSI, LQI bars, and audio meters. SKM uses a mic meter; SEK has Mic, IEM Mono, and IEM Stereo variants
+- Composite graphics: **Audio Meter**, **RSSI Meter**, and **LQI Signal Bars**
+- Per-device MIC and IEM level variables (`*_mic_level_rms` / `*_peak`, `*_iem_level_rms` / `*_peak`, stereo `*_iem_level_2_*`, and `*_iem_stereo`)
+- **Blink battery** presets for mobile devices
+
+### Changed
+
+- Audio meter variables and **Audio Level Threshold** feedback now update every 50 ms
+
+### Fixed
+
+- Antenna temperature feedback treating 0°C as missing, and Fahrenheit threshold comparison
+- Cleanup newly created audio links if routing assignment fails
+- Map legacy audio input `source` values to current interface names
+
 ## [1.1.0] - 2026-07-14
 
 ### Added
@@ -44,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release
 
+[unreleased]: https://github.com/bitfocus/companion-module-sennheiser-spectera/compare/v1.1.0...HEAD
 [1.1.0]: https://github.com/bitfocus/companion-module-sennheiser-spectera/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/bitfocus/companion-module-sennheiser-spectera/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/bitfocus/companion-module-sennheiser-spectera/releases/tag/v1.0.0
