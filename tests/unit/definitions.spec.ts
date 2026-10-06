@@ -4,7 +4,7 @@ import { UpdateFeedbacks } from '../../src/feedbacks.js'
 import { UpdateCompositeElements } from '../../src/graphics.js'
 import { SpecteraState } from '../../src/state.js'
 import { InputSource, InterfaceInputStatus, RfState } from '../../src/types.js'
-import { makeAudioInput, makeSekDevice } from '../fixtures/devices.js'
+import { makeAudioInput, makeSekDevice, makeSkmDevice } from '../fixtures/devices.js'
 
 function makeInstance() {
 	const state = new SpecteraState()
@@ -13,6 +13,7 @@ function makeInstance() {
 		api: {
 			setRfChannel: vi.fn().mockResolvedValue(undefined),
 			setAudioInput: vi.fn().mockResolvedValue(undefined),
+			setMobileDevice: vi.fn().mockResolvedValue(undefined),
 		},
 		confirmationKey: vi.fn((id: string) => `${id}:key`),
 		confirmAction: vi.fn(() => true),
@@ -75,6 +76,64 @@ describe('action definitions', () => {
 			},
 		})
 		expect(instance.api.setAudioInput).toHaveBeenCalledWith(2, { inputSource: InputSource['MADI 1'] })
+	})
+})
+
+describe('mobile device actions', () => {
+	function setup() {
+		const instance = makeInstance()
+		instance.state.updateMobileDevice(
+			makeSekDevice({ headphoneVolume: 10, headphoneVolumeMax: 12, headphoneBalance: 95, micPreampGain: 40 }),
+		)
+		instance.state.updateMobileDevice(makeSkmDevice({ micPreampGain: -8 }))
+		UpdateActions(instance as any)
+		const actions = registeredDefinitions(instance.setActionDefinitions)
+		return { instance, actions, setMobileDevice: instance.api.setMobileDevice }
+	}
+
+	it('skips the action when the device is unknown or the API is not connected', async () => {
+		const { instance, actions, setMobileDevice } = setup()
+
+		await actions.mobileDeviceIdentify.callback({ options: { serial: 'MISSING', identify: 'true' } })
+		;(instance as { api?: unknown }).api = undefined
+		await actions.mobileDeviceIdentify.callback({ options: { serial: 'SEK-001', identify: 'true' } })
+
+		expect(setMobileDevice).not.toHaveBeenCalled()
+	})
+
+	it('adjusts SEK headphone volume and balance within their limits', async () => {
+		const { actions, setMobileDevice } = setup()
+
+		await actions.mobileDeviceHeadphoneVolume.callback({
+			options: { serial: 'SEK-001', action: 'adjust', adjustment: '5' },
+		})
+		await actions.mobileDeviceHeadphoneBalance.callback({
+			options: { serial: 'SEK-001', action: 'adjust', adjustment: '10' },
+		})
+
+		expect(setMobileDevice).toHaveBeenCalledWith(1, { headphoneVolume: 12 })
+		expect(setMobileDevice).toHaveBeenCalledWith(1, { headphoneBalance: 100 })
+	})
+
+	it('ignores headphone actions for SKM devices', async () => {
+		const { actions, setMobileDevice } = setup()
+
+		await actions.mobileDeviceHeadphoneVolume.callback({ options: { serial: 'SKM-001', action: 'set', volume: '0' } })
+		await actions.mobileDeviceHeadphoneBalance.callback({ options: { serial: 'SKM-001', action: 'set', balance: '0' } })
+
+		expect(setMobileDevice).not.toHaveBeenCalled()
+	})
+
+	it('clamps mic preamp gain to the per-type range', async () => {
+		const { actions, setMobileDevice } = setup()
+
+		await actions.mobileDeviceMicPreampGain.callback({
+			options: { serial: 'SEK-001', action: 'adjust', adjustment: '6' },
+		})
+		await actions.mobileDeviceMicPreampGain.callback({ options: { serial: 'SKM-001', action: 'set', gain: '-20' } })
+
+		expect(setMobileDevice).toHaveBeenCalledWith(1, { micPreampGain: 42 })
+		expect(setMobileDevice).toHaveBeenCalledWith(2, { micPreampGain: -10 })
 	})
 })
 

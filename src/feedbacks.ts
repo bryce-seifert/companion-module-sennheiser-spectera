@@ -1,5 +1,5 @@
 import type { SpecteraInstance } from './main.js'
-import type { CompanionFeedbackDefinitions, CompanionOptionValues } from '@companion-module/base'
+import type { CompanionFeedbackDefinitions } from '@companion-module/base'
 import {
 	AntennaPortId,
 	BandwidthMode,
@@ -34,6 +34,7 @@ import {
 	CONFIRMABLE_ACTIONS,
 	getChoicesFromEnum,
 	getDeviceBySerial,
+	getDeviceFromOptions,
 	getMobileDeviceChoices,
 	getAudioLinkChoices,
 	getAudioInputChoices,
@@ -55,7 +56,6 @@ import {
 
 export function UpdateFeedbacks(self: SpecteraInstance): void {
 	const feedbacks: CompanionFeedbackDefinitions = {}
-	const getFeedbackDevice = (options: CompanionOptionValues) => getDeviceBySerial(self.state, options.serial as string)
 
 	feedbacks['rfTxPower'] = {
 		type: 'boolean',
@@ -457,7 +457,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			return device?.identify === true
 		},
 	}
@@ -480,7 +480,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			return device?.reverseIdentify === true
 		},
 	}
@@ -503,7 +503,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			return device?.state === MtState.Connected
 		},
 	}
@@ -533,7 +533,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			return device?.state === feedback.options.state
 		},
 	}
@@ -556,7 +556,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			return device?.batteryLow === true
 		},
 	}
@@ -586,7 +586,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			return device?.interference?.severity === feedback.options.severity
 		},
 	}
@@ -616,7 +616,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			return device?.dominantAntenna === feedback.options.antenna
 		},
 	}
@@ -639,7 +639,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			if (device?.type === MtType.SEK) {
 				return device.headphonePlugState === 'Plugged'
 			}
@@ -704,7 +704,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			if (device?.type === MtType.SEK) {
 				return device.iemAudiolinkActive === true
 			}
@@ -737,7 +737,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			const rawId = Number(feedback.options.inputId)
 			const inputId = rawId >= STEREO_INPUT_OFFSET ? rawId - STEREO_INPUT_OFFSET : rawId
 			if (device?.type === MtType.SEK && device.iemAudiolinkId !== -1) {
@@ -765,7 +765,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			if (device?.type === MtType.SEK && device.iemAudiolinkId === -1) {
 				return true
 			}
@@ -878,7 +878,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			const outputId = Number(feedback.options.outputId)
 			if (device?.micAudiolinkId !== -1) {
 				return self.state.audioOutputs.get(outputId)?.micAudiolinkId === device?.micAudiolinkId
@@ -970,7 +970,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			return device?.frequencyRange === feedback.options.range
 		},
 	}
@@ -1000,7 +1000,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			const rfChannelId = feedback.options.rfChannelId === -1 ? undefined : (feedback.options.rfChannelId as number)
 			return device?.rfChannelId === rfChannelId
 		},
@@ -1024,7 +1024,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			return device?.sleep === true
 		},
 	}
@@ -1054,7 +1054,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			return device?.commandBehavior === feedback.options.commandBehavior
 		},
 	}
@@ -1084,7 +1084,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			return device?.commandState === feedback.options.commandState
 		},
 	}
@@ -1114,7 +1114,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			const level = device?.batteryFillLevel
 			return level !== undefined && level <= Number(feedback.options.threshold)
 		},
@@ -1145,7 +1145,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			const runtime = device?.batteryRuntime
 			return runtime !== undefined && runtime <= Number(feedback.options.threshold)
 		},
@@ -1177,7 +1177,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			return colorsMatch(device?.connectedStateColor, feedback.options.connectedStateColor)
 		},
 	}
@@ -1198,7 +1198,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			if (!device) return { bgcolor: undefined }
 
 			return {
@@ -1225,7 +1225,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			return device?.micAudiolinkActive === true
 		},
 	}
@@ -1248,7 +1248,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			return device?.micTestToneEnabled === true
 		},
 	}
@@ -1277,7 +1277,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			return device?.micTestToneLevel === Number(feedback.options.level)
 		},
 	}
@@ -1306,7 +1306,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			if (device?.type === MtType.SEK) {
 				return device.headphoneVolume === Number(feedback.options.volume)
 			}
@@ -1338,7 +1338,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			if (device?.type === MtType.SEK) {
 				return device.headphoneBalance === Number(feedback.options.balance)
 			}
@@ -1370,7 +1370,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			return device?.micPreampGain === Number(feedback.options.gain)
 		},
 	}
@@ -1400,7 +1400,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			const frequency = Number(feedback.options.frequency)
 			if (!device) return false
 			const deviceHz = Number(device.micLowCutHz)
@@ -1441,7 +1441,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			if (device?.type === MtType.SEK) {
 				return device.headphoneVolumeLimit === Number(feedback.options.limit)
 			}
@@ -1473,7 +1473,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			if (device?.type === MtType.SEK) {
 				return device.headphoneVolumeMax === Number(feedback.options.max)
 			}
@@ -1505,7 +1505,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			if (device?.type === MtType.SEK) {
 				return device.headphoneVolumeMin === Number(feedback.options.min)
 			}
@@ -1538,7 +1538,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			if (device?.type === MtType.SEK) {
 				return device.micLineSelection === feedback.options.selection
 			}
@@ -1571,7 +1571,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			if (device?.type === MtType.SEK) {
 				return device.micLineSelectionAutoValue === feedback.options.autoValue
 			}
@@ -1604,7 +1604,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback) => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			if (device?.type === MtType.SEK) {
 				return device.cableEmulation === feedback.options.emulation
 			}
@@ -1682,7 +1682,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback): Promise<boolean> => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			if (!device?.micLqi) return false
 			return device.micLqi >= Number(feedback.options.micLqiThreshold)
 		},
@@ -1713,7 +1713,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback): Promise<boolean> => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			if (device?.type !== MtType.SEK || !device?.iemLqi) return false
 			return device.iemLqi >= Number(feedback.options.iemLqiThreshold)
 		},
@@ -1743,7 +1743,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			},
 		],
 		callback: async (feedback): Promise<boolean> => {
-			const device = getFeedbackDevice(feedback.options)
+			const device = getDeviceFromOptions(self.state, feedback.options)
 			if (!device?.rssi) return false
 			return device.rssi >= Number(feedback.options.rssiThreshold)
 		},

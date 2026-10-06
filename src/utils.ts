@@ -1,4 +1,9 @@
-import { combineRgb, type CompanionInputFieldDropdown, type JsonValue } from '@companion-module/base'
+import {
+	combineRgb,
+	type CompanionInputFieldDropdown,
+	type CompanionOptionValues,
+	type JsonValue,
+} from '@companion-module/base'
 import { SpecteraState } from './state.js'
 import {
 	type Antenna,
@@ -230,6 +235,11 @@ export function getDeviceBySerial(state: SpecteraState, serial: string): MobileD
 		if (device.serial === serial) return device
 	}
 	return undefined
+}
+
+// Looks up the device selected by an action/feedback's `serial` option.
+export function getDeviceFromOptions(state: SpecteraState, options: CompanionOptionValues): MobileDevice | undefined {
+	return getDeviceBySerial(state, options.serial as string)
 }
 
 //Portable Mobile Device Settings for JSON backups
