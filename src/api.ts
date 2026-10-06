@@ -79,14 +79,25 @@ function isActiveAudioLinkId(id: number | undefined): boolean {
 /**
  * Translate an audio input object coming off the Base Station into the module's canonical form.
  */
+const LEGACY_INPUT_SOURCES: Record<string, InputSource> = {
+	dante: InputSource.Dante,
+	madi1: InputSource['MADI 1'],
+	madi2: InputSource['MADI 2'],
+}
+
+// Map each metering payload field to its original variable names
+const LEVEL_VARIABLE_INTERFACES: { field: keyof AudioLevels; varBase: string }[] = [
+	{ field: 'madi1In', varBase: 'madi_1_in' },
+	{ field: 'madi2In', varBase: 'madi_2_in' },
+	{ field: 'aoIpIn', varBase: 'dante_in' },
+	{ field: 'madi1Out', varBase: 'madi_1_out' },
+	{ field: 'madi2Out', varBase: 'madi_2_out' },
+	{ field: 'aoIpOut', varBase: 'dante_out' },
+]
+
 function normalizeAudioInput(raw: AudioInput & { source?: unknown }): AudioInput {
 	if (raw.inputSource === undefined) {
-		const legacySources: Record<string, InputSource> = {
-			dante: InputSource.Dante,
-			madi1: InputSource['MADI 1'],
-			madi2: InputSource['MADI 2'],
-		}
-		raw.inputSource = legacySources[String(raw.source).toLowerCase()] ?? (raw.source as InputSource)
+		raw.inputSource = LEGACY_INPUT_SOURCES[String(raw.source).toLowerCase()] ?? (raw.source as InputSource)
 	}
 	return raw
 }
@@ -105,7 +116,7 @@ export class SpecteraApi extends EventEmitter {
 	private sessionUUID: string | null = null
 	private staleSessionUUID: string | null = null
 	private readonly dispatcher: Dispatcher
-	private variableCache: Record<string, string | number | boolean | undefined> = {}
+	private variableCache: Record<string, VariableValue> = {}
 	private lastLevelUpdateTime = 0
 	private static readonly LEVEL_UPDATE_INTERVAL_MS = 50
 	private isInitializing = false
@@ -658,7 +669,7 @@ export class SpecteraApi extends EventEmitter {
 					this.instance.log('debug', `Subscription opened with sessionUUID: ${this.sessionUUID}`)
 					this.emit('subscribed', this.sessionUUID)
 				} else {
-					this.processInternalUpdate(eventType, jsonData)
+					this.processInternalUpdate(jsonData)
 				}
 			} catch (_e) {
 				this.instance.log('debug', `Failed to parse SSE data: ${data}`)
@@ -710,10 +721,7 @@ export class SpecteraApi extends EventEmitter {
 		}
 	}
 
-	private processAudioLevels(
-		levels: AudioLevels,
-		changedVariables: Record<string, string | number | boolean | undefined>,
-	): void {
+	private processAudioLevels(levels: AudioLevels, changedVariables: Record<string, VariableValue>): void {
 		this.state.updateAudioLevels(levels)
 
 		if (this.isInitializing) return
@@ -722,17 +730,7 @@ export class SpecteraApi extends EventEmitter {
 		if (now - this.lastLevelUpdateTime >= SpecteraApi.LEVEL_UPDATE_INTERVAL_MS) {
 			this.lastLevelUpdateTime = now
 
-			// Map each metering payload field to its the original variable names
-			const interfaces: { field: keyof AudioLevels; varBase: string }[] = [
-				{ field: 'madi1In', varBase: 'madi_1_in' },
-				{ field: 'madi2In', varBase: 'madi_2_in' },
-				{ field: 'aoIpIn', varBase: 'dante_in' },
-				{ field: 'madi1Out', varBase: 'madi_1_out' },
-				{ field: 'madi2Out', varBase: 'madi_2_out' },
-				{ field: 'aoIpOut', varBase: 'dante_out' },
-			]
-
-			for (const { field, varBase: ifaceName } of interfaces) {
+			for (const { field, varBase: ifaceName } of LEVEL_VARIABLE_INTERFACES) {
 				const levelData = levels[field] as AudioLevel | undefined
 				if (levelData) {
 					levelData.peak.forEach((val, index) => {
@@ -773,10 +771,10 @@ export class SpecteraApi extends EventEmitter {
 		}
 	}
 
-	private processInternalUpdate(_eventType: string, data: any): void {
+	private processInternalUpdate(data: any): void {
 		let structureChanged = false
 		const keys = Object.keys(data)
-		const changedVariables: Record<string, string | number | boolean | undefined> = {}
+		const changedVariables: Record<string, VariableValue> = {}
 		const feedbacksToCheck = new Set<string>()
 
 		for (const key of keys) {

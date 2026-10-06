@@ -1,5 +1,5 @@
 import type { SpecteraInstance } from './main.js'
-import type { CompanionActionDefinitions } from '@companion-module/base'
+import type { CompanionActionDefinitions, SomeCompanionActionInputField } from '@companion-module/base'
 import {
 	type Antenna,
 	AntennaPortId,
@@ -33,6 +33,7 @@ import {
 	getMobileDeviceChoices,
 	parseMobileDeviceSettingsJson,
 	rfChannelChoices,
+	dadRfBindingChoices,
 	sanitizeMobileDeviceName,
 	STEREO_INPUT_OFFSET,
 	DEFAULT_CONNECTED_STATE_COLOR,
@@ -40,6 +41,15 @@ import {
 	LED_COLOR_PRESETS,
 	normalizeHexColor,
 } from './utils.js'
+
+const REQUIRE_CONFIRMATION_OPTION = {
+	type: 'checkbox',
+	label: 'Require Confirmation',
+	id: 'requireConfirmation',
+	default: false,
+	tooltip:
+		'This will require a double press of the button to confirm the action. It will timeout after 5 seconds if not confirmed.',
+} as const satisfies SomeCompanionActionInputField
 
 export function UpdateActions(self: SpecteraInstance): void {
 	const actions: CompanionActionDefinitions = {}
@@ -62,14 +72,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 				default: RfState.Active,
 				id: 'state',
 			},
-			{
-				type: 'checkbox',
-				label: 'Require Confirmation',
-				id: 'requireConfirmation',
-				default: false,
-				tooltip:
-					'This will require a double press of the button to confirm the action. It will timeout after 5 seconds if not confirmed.',
-			},
+			REQUIRE_CONFIRMATION_OPTION,
 		],
 		description: 'Set the RF Channel',
 		callback: async (action) => {
@@ -189,14 +192,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 				id: 'frequency',
 				useVariables: true,
 			},
-			{
-				type: 'checkbox',
-				label: 'Require Confirmation',
-				id: 'requireConfirmation',
-				default: false,
-				tooltip:
-					'This will require a double press of the button to confirm the action. It will timeout after 5 seconds if not confirmed.',
-			},
+			REQUIRE_CONFIRMATION_OPTION,
 		],
 		description: 'Set the RF Channel Frequency',
 		callback: async (action) => {
@@ -253,14 +249,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 				isVisibleExpression: '$(options:mode) === "Toggle"',
 				tooltip: 'The secondary interface that will be moved to when the Toggle mode is selected.',
 			},
-			{
-				type: 'checkbox',
-				label: 'Require Confirmation',
-				id: 'requireConfirmation',
-				default: false,
-				tooltip:
-					'This will require a double press of the button to confirm the action. It will timeout after 5 seconds if not confirmed.',
-			},
+			REQUIRE_CONFIRMATION_OPTION,
 		],
 		description: 'Set the audio input interface (Dante, MADI 1, MADI 2).',
 		callback: async (action) => {
@@ -379,11 +368,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 			{
 				type: 'dropdown',
 				label: 'RF Channel',
-				choices: [
-					{ label: 'RF Channel 1', id: RFChannels['RF Channel 1'] },
-					{ label: 'RF Channel 2', id: RFChannels['RF Channel 2'] },
-					{ label: 'Scan', id: RFChannels.Scan },
-				],
+				choices: dadRfBindingChoices,
 				default: RFChannels['RF Channel 1'],
 				id: 'rfChannel',
 			},
@@ -398,14 +383,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 				default: 'On',
 				id: 'mode',
 			},
-			{
-				type: 'checkbox',
-				label: 'Require Confirmation',
-				id: 'requireConfirmation',
-				default: false,
-				tooltip:
-					'This will require a double press of the button to confirm the action. It will timeout after 5 seconds if not confirmed.',
-			},
+			REQUIRE_CONFIRMATION_OPTION,
 		],
 		description: 'Set the DAD RF Channel',
 		callback: async (action) => {
@@ -1269,14 +1247,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 				id: 'mode',
 				tooltip: 'Mute/Talk only apply if the Command Mode is set to "Enabled".',
 			},
-			{
-				type: 'checkbox',
-				label: 'Require Confirmation',
-				id: 'requireConfirmation',
-				default: false,
-				tooltip:
-					'This will require a double press of the button to confirm the action. It will timeout after 5 seconds if not confirmed.',
-			},
+			REQUIRE_CONFIRMATION_OPTION,
 		],
 		description: 'Set the interface mode (Dante, MADI 1, MADI 2) for one or more audio outputs.',
 		callback: async (action) => {
@@ -1342,14 +1313,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 				choices: mobileDeviceChoices,
 				allowCustom: true,
 			},
-			{
-				type: 'checkbox',
-				label: 'Require Confirmation',
-				id: 'requireConfirmation',
-				default: false,
-				tooltip:
-					'This will require a double press of the button to confirm the action. It will timeout after 5 seconds if not confirmed.',
-			},
+			REQUIRE_CONFIRMATION_OPTION,
 		],
 		description:
 			'Copy all shared settings from one Mobile Device to another, including copying the IEM link and moving the mic links, if present.',
@@ -1392,14 +1356,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 				tooltip:
 					'Paste the value of another mobile device’s "Settings (JSON)" variable, e.g. $(spectera:SEK_1234567890_settings_json).',
 			},
-			{
-				type: 'checkbox',
-				label: 'Require Confirmation',
-				id: 'requireConfirmation',
-				default: false,
-				tooltip:
-					'This will require a double press of the button to confirm the action. It will timeout after 5 seconds if not confirmed.',
-			},
+			REQUIRE_CONFIRMATION_OPTION,
 		],
 		description:
 			'Apply a set of mobile-device settings from a JSON string (typically a device’s Settings (JSON) variable).',

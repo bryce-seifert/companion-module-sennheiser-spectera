@@ -7,7 +7,14 @@ import {
 	type CompanionPresetGroupSimple,
 } from '@companion-module/base'
 import { SpecteraInstance, type SpecteraInstanceTypes } from './main.js'
-import { audioOutputChannelChoices, Color, getExistingMicAudiolinkModeFromState, STEREO_INPUT_OFFSET } from './utils.js'
+import {
+	audioOutputChannelChoices,
+	Color,
+	getExistingMicAudiolinkModeFromState,
+	rfChannelChoices,
+	STEREO_INPUT_OFFSET,
+} from './utils.js'
+import { inputSourceLabels } from './state_maps.js'
 import {
 	RFChannels,
 	AntennaPortId,
@@ -298,10 +305,6 @@ function buildDeviceStatusMeterPreset(opts: DeviceStatusMeterOptions): RawPreset
 export function UpdatePresets(self: SpecteraInstance): void {
 	const presets: Record<string, RawPresetEntry> = {}
 
-	const rfChannelChoices = [
-		{ label: 'RF Channel 1', id: 0 },
-		{ label: 'RF Channel 2', id: 1 },
-	]
 	//RF Channels
 	for (const channel of rfChannelChoices) {
 		const channelIndex = channel.id
@@ -1142,7 +1145,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 		text: '',
 	}
 	for (const source of [InputSource.Dante, InputSource['MADI 1'], InputSource['MADI 2']] as const) {
-		const sourceLabel = source === InputSource.Dante ? 'Dante' : source === InputSource['MADI 1'] ? 'MADI 1' : 'MADI 2'
+		const sourceLabel = inputSourceLabels[source]
 		const allInputIds = Array.from(self.state.audioInputs.values()).map((input) => input.inputId)
 		presets[`audioInputAllInputsSource_${source}`] = {
 			type: 'simple',
@@ -1209,8 +1212,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			text: '',
 		}
 		for (const source of [InputSource.Dante, InputSource['MADI 1'], InputSource['MADI 2']] as const) {
-			const sourceLabel =
-				source === InputSource.Dante ? 'Dante' : source === InputSource['MADI 1'] ? 'MADI 1' : 'MADI 2'
+			const sourceLabel = inputSourceLabels[source]
 			presets[`audioInput${input.inputId}Source_${source}`] = {
 				type: 'simple',
 				category: 'Audio Inputs',
@@ -1382,6 +1384,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 			text: '',
 		}
 
+		const micLinkModeId = getExistingMicAudiolinkModeFromState(self.state, device) ?? MicAudiolinkMode['LIVE (Mono)']
 		for (const output of self.state.audioOutputs.values()) {
 			presets[`${deviceVariableId}_MicLinkMove_Source_${output.outputId}`] = {
 				type: 'simple',
@@ -1403,7 +1406,7 @@ export function UpdatePresets(self: SpecteraInstance): void {
 									serial: device.serial,
 									outputId: output.outputId,
 									behavior: 'toggle',
-									modeId: getExistingMicAudiolinkModeFromState(self.state, device) ?? MicAudiolinkMode['LIVE (Mono)'],
+									modeId: micLinkModeId,
 									useExisting: true,
 								},
 							},

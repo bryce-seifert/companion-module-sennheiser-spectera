@@ -82,13 +82,9 @@ export function toCompanionColor(color: JsonValue | undefined): number | undefin
 export const Color = {
 	Black: combineRgb(0, 0, 0),
 	White: combineRgb(255, 255, 255),
-	Red: combineRgb(255, 0, 0),
-	Green: combineRgb(0, 255, 0),
-	Yellow: combineRgb(255, 255, 0),
 	LightGray: combineRgb(72, 72, 72),
 	DarkGreen: combineRgb(75, 127, 76),
 	SpecteraDarkGray: combineRgb(40, 41, 46),
-	SpecteraLightGray: combineRgb(46, 48, 54),
 	SpecteraRed: combineRgb(244, 67, 54),
 	SpecteraGreen: combineRgb(102, 187, 106),
 	SpecteraBlue: combineRgb(0, 150, 214),
@@ -135,6 +131,12 @@ export const audioOutputStateChoices = [
 export const rfChannelChoices = [
 	{ label: 'RF Channel 1', id: 0 },
 	{ label: 'RF Channel 2', id: 1 },
+]
+
+export const dadRfBindingChoices = [
+	{ label: 'RF Channel 1', id: RFChannels['RF Channel 1'] },
+	{ label: 'RF Channel 2', id: RFChannels['RF Channel 2'] },
+	{ label: 'Scan', id: RFChannels.Scan },
 ]
 
 export const CONFIRMABLE_ACTIONS = [

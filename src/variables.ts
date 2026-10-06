@@ -577,8 +577,10 @@ export function getAudioInputVariables(
  */
 export function getAudioOutputSourceName(output: AudioOutput, mobileDevices: Map<number, MobileDevice>): string {
 	if (output.micAudiolinkId < 0) return 'None'
-	const device = [...mobileDevices.values()].find((d) => d.micAudiolinkId === output.micAudiolinkId)
-	return device?.name ?? 'None'
+	for (const device of mobileDevices.values()) {
+		if (device.micAudiolinkId === output.micAudiolinkId) return device.name
+	}
+	return 'None'
 }
 
 export function getAudioOutputVariables(
@@ -669,6 +671,13 @@ const INPUT_LEVEL_FIELDS: Partial<Record<InputSource, AudioLevelField>> = {
 	[InputSource['MADI 2']]: 'madi2In',
 }
 
+function findByLinkId<T, K extends keyof T>(items: Iterable<T>, key: K, linkId: T[K]): T | undefined {
+	for (const item of items) {
+		if (item[key] === linkId) return item
+	}
+	return undefined
+}
+
 export function getMobileDeviceLevelVariables(
 	device: MobileDevice,
 	audioOutputs: Map<number, AudioOutput>,
@@ -684,7 +693,7 @@ export function getMobileDeviceLevelVariables(
 		[`${deviceVariableId}_mic_level_peak`]: -127.5,
 	}
 	if (audioLevels && device.micAudiolinkId != null && device.micAudiolinkId >= 0) {
-		const output = [...audioOutputs.values()].find((o) => o.micAudiolinkId === device.micAudiolinkId)
+		const output = findByLinkId(audioOutputs.values(), 'micAudiolinkId', device.micAudiolinkId)
 		if (output) {
 			const field = OUTPUT_LEVEL_FIELDS.find(([flag]) => output[flag] === 'On')?.[1]
 			const level = field ? audioLevels[field] : undefined
@@ -705,7 +714,7 @@ export function getMobileDeviceLevelVariables(
 		values[`${deviceVariableId}_iem_level_2_rms`] = -127.5
 		values[`${deviceVariableId}_iem_level_2_peak`] = -127.5
 		if (audioLevels && device.iemAudiolinkId != null && device.iemAudiolinkId >= 0) {
-			const input = [...audioInputs.values()].find((i) => i.iemAudiolinkId === device.iemAudiolinkId)
+			const input = findByLinkId(audioInputs.values(), 'iemAudiolinkId', device.iemAudiolinkId)
 			if (input) {
 				const field = INPUT_LEVEL_FIELDS[input.inputSource]
 				const level = field ? audioLevels[field] : undefined
@@ -815,9 +824,9 @@ export function getFanVariables(fanId: string, state: FanState): Record<string, 
 
 export function getBaseStationIdentityVariables(identity: BaseStationIdentity): Record<string, VariableValue> {
 	return {
-		base_station_model: identity.product,
+		//base_station_model: identity.product,
 		base_station_serial: identity.serial,
-		base_station_version: identity.hardwareRevision,
+		//base_station_version: identity.hardwareRevision,
 	}
 }
 
@@ -837,85 +846,79 @@ export function getBaseStationSiteVariables(site: BaseStationSite): Record<strin
 }
 
 export function UpdateVariableValues(self: SpecteraInstance): void {
-	let values: Record<string, string | number | boolean | undefined> = {}
+	const values: Record<string, VariableValue> = {}
 
 	// Base Station Info
 	if (self.state.basestation.state) {
-		values = { ...values, ...getBaseStationStateVariables(self.state.basestation.state) }
+		Object.assign(values, getBaseStationStateVariables(self.state.basestation.state))
 	}
 	if (self.state.basestation.site) {
-		values = { ...values, ...getBaseStationSiteVariables(self.state.basestation.site) }
+		Object.assign(values, getBaseStationSiteVariables(self.state.basestation.site))
 	}
 	if (self.state.basestation.identity) {
-		values = { ...values, ...getBaseStationIdentityVariables(self.state.basestation.identity) }
+		Object.assign(values, getBaseStationIdentityVariables(self.state.basestation.identity))
 	}
 
 	// Health
-	values = { ...values, ...getPsuVariables(self.state.health.psu) }
-	values = { ...values, ...getTempVariables(self.state.health.temp) }
+	Object.assign(values, getPsuVariables(self.state.health.psu))
+	Object.assign(values, getTempVariables(self.state.health.temp))
 	for (const [fanId, fanState] of Object.entries(self.state.health.fans)) {
 		if (fanState) {
-			values = { ...values, ...getFanVariables(fanId, fanState) }
+			Object.assign(values, getFanVariables(fanId, fanState))
 		}
 	}
 
 	if (self.state.audioNetwork) {
-		values = { ...values, ...getVariablesFromMap(AudioNetworkStateMap, self.state.audioNetwork, 'dante_') }
+		Object.assign(values, getVariablesFromMap(AudioNetworkStateMap, self.state.audioNetwork, 'dante_'))
 	}
 	if (self.state.madi1) {
-		values = { ...values, ...getVariablesFromMap(MadiStateMap, self.state.madi1, 'madi_1_') }
-		values = { ...values, ...getVariablesFromMap(MadiInputStateMap, self.state.madi1.inputStatus, 'madi_1_') }
-		values = { ...values, ...getVariablesFromMap(MadiOutputStateMap, self.state.madi1.outputStatus, 'madi_1_') }
+		Object.assign(values, getVariablesFromMap(MadiStateMap, self.state.madi1, 'madi_1_'))
+		Object.assign(values, getVariablesFromMap(MadiInputStateMap, self.state.madi1.inputStatus, 'madi_1_'))
+		Object.assign(values, getVariablesFromMap(MadiOutputStateMap, self.state.madi1.outputStatus, 'madi_1_'))
 	}
 	if (self.state.madi2) {
-		values = { ...values, ...getVariablesFromMap(MadiStateMap, self.state.madi2, 'madi_2_') }
-		values = { ...values, ...getVariablesFromMap(MadiInputStateMap, self.state.madi2.inputStatus, 'madi_2_') }
-		values = { ...values, ...getVariablesFromMap(MadiOutputStateMap, self.state.madi2.outputStatus, 'madi_2_') }
+		Object.assign(values, getVariablesFromMap(MadiStateMap, self.state.madi2, 'madi_2_'))
+		Object.assign(values, getVariablesFromMap(MadiInputStateMap, self.state.madi2.inputStatus, 'madi_2_'))
+		Object.assign(values, getVariablesFromMap(MadiOutputStateMap, self.state.madi2.outputStatus, 'madi_2_'))
 	}
 	if (self.state.wordclock) {
-		values = {
-			...values,
-			...getVariablesFromMap(WordclockInputStateMap, self.state.wordclock.inputStatus, 'wordclock_'),
-		}
-		values = {
-			...values,
-			...getVariablesFromMap(WordclockOutputStateMap, self.state.wordclock.outputStatus, 'wordclock_'),
-		}
+		Object.assign(values, getVariablesFromMap(WordclockInputStateMap, self.state.wordclock.inputStatus, 'wordclock_'))
+		Object.assign(values, getVariablesFromMap(WordclockOutputStateMap, self.state.wordclock.outputStatus, 'wordclock_'))
 	}
 
 	// Audio Inputs
 	for (const input of self.state.audioInputs.values()) {
-		values = { ...values, ...getAudioInputVariables(input, self.state.mobileDevices) }
+		Object.assign(values, getAudioInputVariables(input, self.state.mobileDevices))
 	}
 
 	// Audio Outputs
 	for (const output of self.state.audioOutputs.values()) {
-		values = { ...values, ...getAudioOutputVariables(output, self.state.mobileDevices) }
+		Object.assign(values, getAudioOutputVariables(output, self.state.mobileDevices))
 	}
 
 	// RF Channels
 	for (const channel of self.state.rfChannels.values()) {
-		values = { ...values, ...getRfChannelVariables(channel) }
+		Object.assign(values, getRfChannelVariables(channel))
 	}
 
 	// Antennas
 	for (const antenna of self.state.antennas.values()) {
-		values = { ...values, ...getAntennaVariables(antenna, self.state.rfChannels) }
+		Object.assign(values, getAntennaVariables(antenna, self.state.rfChannels))
 	}
 
 	// Mobile Devices
 	for (const device of self.state.mobileDevices.values()) {
-		values = {
-			...values,
-			...getMobileDeviceVariables(device),
-			...getMobileDeviceLevelVariables(
+		Object.assign(
+			values,
+			getMobileDeviceVariables(device),
+			getMobileDeviceLevelVariables(
 				device,
 				self.state.audioOutputs,
 				self.state.audioInputs,
 				self.state.audioLinks,
 				self.state.audioLevels,
 			),
-		}
+		)
 	}
 
 	self.setVariableValues(values)
