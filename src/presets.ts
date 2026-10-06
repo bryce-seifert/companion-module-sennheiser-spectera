@@ -11,6 +11,7 @@ import {
 	audioOutputChannelChoices,
 	Color,
 	getExistingMicAudiolinkModeFromState,
+	METERING_INTERFACES,
 	rfChannelChoices,
 	STEREO_INPUT_OFFSET,
 } from './utils.js'
@@ -3462,24 +3463,15 @@ export function UpdatePresets(self: SpecteraInstance): void {
 	// "out" interface. All banks share the single "Audio Meters" section (like SEKs/SKMs), split into
 	// groups by each bank's own header - not separate top-level sections.
 	const AUDIO_METERS_CATEGORY = 'Audio Meters'
-	const METER_BANK_INTERFACES: { variableBase: string; label: string; isOutput: boolean }[] = [
-		{ variableBase: 'dante_in', label: 'Dante IN', isOutput: false },
-		{ variableBase: 'dante_out', label: 'Dante OUT', isOutput: true },
-		{ variableBase: 'madi_1_in', label: 'MADI 1 IN', isOutput: false },
-		{ variableBase: 'madi_1_out', label: 'MADI 1 OUT', isOutput: true },
-		{ variableBase: 'madi_2_in', label: 'MADI 2 IN', isOutput: false },
-		{ variableBase: 'madi_2_out', label: 'MADI 2 OUT', isOutput: true },
-	]
-
-	for (const iface of METER_BANK_INTERFACES) {
+	for (const iface of METERING_INTERFACES) {
 		const base = {
-			variableBase: iface.variableBase,
-			label: iface.label,
+			variableBase: iface.varBase,
+			label: `${iface.name} ${iface.direction.toUpperCase()}`,
 			category: AUDIO_METERS_CATEGORY,
 			channelCount: 8,
 		}
 		buildChannelMeterBank(presets, { ...base, mode: 'mono' })
-		if (!iface.isOutput) buildChannelMeterBank(presets, { ...base, mode: 'stereo' })
+		if (iface.direction === 'In') buildChannelMeterBank(presets, { ...base, mode: 'stereo' })
 	}
 
 	const { structure, presets: finalPresets } = buildPresetStructure(presets)

@@ -24,7 +24,6 @@ import {
 	CommandBehavior,
 	CommandState,
 } from './types.js'
-import type { AudioLevels } from './types.js'
 import {
 	audioOutputChannelChoices,
 	audioOutputInterfaceProps,
@@ -40,6 +39,8 @@ import {
 	getAudioInputChoices,
 	getAudioOutputChoices,
 	rfChannelChoices,
+	DAD_OPTION,
+	METERING_INTERFACES,
 	dadRfBindingChoices,
 	STEREO_INPUT_OFFSET,
 } from './utils.js'
@@ -228,13 +229,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			bgcolor: Color.SpecteraBlue,
 		},
 		options: [
-			{
-				type: 'dropdown',
-				label: 'DAD',
-				choices: getChoicesFromEnum(AntennaPortId),
-				default: AntennaPortId.A,
-				id: 'dad',
-			},
+			DAD_OPTION,
 			{
 				type: 'dropdown',
 				label: 'State',
@@ -255,15 +250,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 		defaultStyle: {
 			bgcolor: Color.LightGray,
 		},
-		options: [
-			{
-				type: 'dropdown',
-				label: 'DAD',
-				choices: getChoicesFromEnum(AntennaPortId),
-				default: AntennaPortId.A,
-				id: 'dad',
-			},
-		],
+		options: [DAD_OPTION],
 		callback: async (feedback) => {
 			const antennaState = self.state.antennas.get(feedback.options.dad as AntennaPortId)?.state
 			return antennaState !== undefined && antennaState !== DeviceStatus.Unconnected
@@ -276,15 +263,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 		defaultStyle: {
 			bgcolor: Color.SpecteraRed,
 		},
-		options: [
-			{
-				type: 'dropdown',
-				label: 'DAD',
-				choices: getChoicesFromEnum(AntennaPortId),
-				default: AntennaPortId.A,
-				id: 'dad',
-			},
-		],
+		options: [DAD_OPTION],
 		callback: async (feedback) => {
 			const antennaWarningHighTemperature = self.state.antennas.get(
 				feedback.options.dad as AntennaPortId,
@@ -299,15 +278,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 		defaultStyle: {
 			bgcolor: Color.SpecteraRed,
 		},
-		options: [
-			{
-				type: 'dropdown',
-				label: 'DAD',
-				choices: getChoicesFromEnum(AntennaPortId),
-				default: AntennaPortId.A,
-				id: 'dad',
-			},
-		],
+		options: [DAD_OPTION],
 		callback: async (feedback) => {
 			const antennaWarningPacketError = self.state.antennas.get(
 				feedback.options.dad as AntennaPortId,
@@ -323,13 +294,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			bgcolor: Color.SpecteraRed,
 		},
 		options: [
-			{
-				type: 'dropdown',
-				label: 'DAD',
-				choices: getChoicesFromEnum(AntennaPortId),
-				default: AntennaPortId.A,
-				id: 'dad',
-			},
+			DAD_OPTION,
 			{
 				type: 'dropdown',
 				label: 'Severity',
@@ -351,13 +316,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			bgcolor: Color.SpecteraRed,
 		},
 		options: [
-			{
-				type: 'dropdown',
-				label: 'DAD',
-				choices: getChoicesFromEnum(AntennaPortId),
-				default: AntennaPortId.A,
-				id: 'dad',
-			},
+			DAD_OPTION,
 			{
 				type: 'textinput',
 				label: 'Noise Level Threshold (dBm)',
@@ -377,15 +336,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 		defaultStyle: {
 			bgcolor: Color.SpecteraGreen,
 		},
-		options: [
-			{
-				type: 'dropdown',
-				label: 'DAD',
-				choices: getChoicesFromEnum(AntennaPortId),
-				default: AntennaPortId.A,
-				id: 'dad',
-			},
-		],
+		options: [DAD_OPTION],
 		callback: async (feedback) => {
 			const antennaIdentify = self.state.antennas.get(feedback.options.dad as AntennaPortId)?.identify
 			return antennaIdentify === true
@@ -399,13 +350,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			bgcolor: Color.SpecteraGreen,
 		},
 		options: [
-			{
-				type: 'dropdown',
-				label: 'DAD',
-				choices: getChoicesFromEnum(AntennaPortId),
-				default: AntennaPortId.A,
-				id: 'dad',
-			},
+			DAD_OPTION,
 			{
 				type: 'dropdown',
 				label: 'Temperature Unit',
@@ -441,13 +386,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			bgcolor: Color.SpecteraGreen,
 		},
 		options: [
-			{
-				type: 'dropdown',
-				label: 'DAD',
-				choices: getChoicesFromEnum(AntennaPortId),
-				default: AntennaPortId.A,
-				id: 'dad',
-			},
+			DAD_OPTION,
 			{
 				type: 'colorpicker',
 				label: 'RF Active Color',
@@ -481,13 +420,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 			bgcolor: Color.SpecteraBlue,
 		},
 		options: [
-			{
-				type: 'dropdown',
-				label: 'DAD',
-				choices: getChoicesFromEnum(AntennaPortId),
-				default: AntennaPortId.A,
-				id: 'dad',
-			},
+			DAD_OPTION,
 			{
 				type: 'dropdown',
 				label: 'RF Channel',
@@ -1692,14 +1625,7 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 				label: 'Interface',
 				id: 'interface',
 				default: 'danteIn',
-				choices: [
-					{ id: 'danteIn', label: 'Dante In' },
-					{ id: 'danteOut', label: 'Dante Out' },
-					{ id: 'madi1In', label: 'MADI 1 In' },
-					{ id: 'madi1Out', label: 'MADI 1 Out' },
-					{ id: 'madi2In', label: 'MADI 2 In' },
-					{ id: 'madi2Out', label: 'MADI 2 Out' },
-				],
+				choices: METERING_INTERFACES.map((i) => ({ id: i.optionId, label: `${i.name} ${i.direction}` })),
 			},
 			{
 				type: 'textinput',
@@ -1718,16 +1644,11 @@ export function UpdateFeedbacks(self: SpecteraInstance): void {
 		],
 		callback: async (feedback) => {
 			const levels = self.state.audioLevels
-			// Option IDs keep the legacy `danteIn`/`danteOut` values for config stability; the AoIP
-			// metering fields are now named `aoIpIn`/`aoIpOut`, so map those two.
-			const optionIface = feedback.options.interface as
-				'danteIn' | 'danteOut' | 'madi1In' | 'madi1Out' | 'madi2In' | 'madi2Out'
-			const iface: keyof AudioLevels =
-				optionIface === 'danteIn' ? 'aoIpIn' : optionIface === 'danteOut' ? 'aoIpOut' : optionIface
+			const iface = METERING_INTERFACES.find((i) => i.optionId === feedback.options.interface)?.field
 			const channel = Number(feedback.options.channel) - 1
 			const threshold = Number(feedback.options.threshold)
 
-			const levelData = levels[iface]
+			const levelData = iface ? levels[iface] : undefined
 			if (levelData && levelData.peak[channel] !== undefined) {
 				return levelData.peak[channel] >= threshold
 			}

@@ -1,7 +1,9 @@
-import { combineRgb, type JsonValue } from '@companion-module/base'
+import { combineRgb, type CompanionInputFieldDropdown, type JsonValue } from '@companion-module/base'
 import { SpecteraState } from './state.js'
 import {
 	type Antenna,
+	AntennaPortId,
+	type AudioLevels,
 	AudiolinkModeId,
 	CableEmulation,
 	CommandBehavior,
@@ -132,6 +134,31 @@ export const rfChannelChoices = [
 	{ label: 'RF Channel 1', id: 0 },
 	{ label: 'RF Channel 2', id: 1 },
 ]
+
+export const DAD_OPTION = {
+	type: 'dropdown',
+	label: 'DAD',
+	choices: getChoicesFromEnum(AntennaPortId),
+	default: AntennaPortId.A,
+	id: 'dad',
+} as const satisfies CompanionInputFieldDropdown
+
+// The six metering interfaces. `optionId` keeps the legacy `danteIn`/`danteOut` feedback values even
+// though the AoIP metering fields are named `aoIpIn`/`aoIpOut`.
+export const METERING_INTERFACES = [
+	{ optionId: 'danteIn', field: 'aoIpIn', varBase: 'dante_in', name: 'Dante', direction: 'In' },
+	{ optionId: 'danteOut', field: 'aoIpOut', varBase: 'dante_out', name: 'Dante', direction: 'Out' },
+	{ optionId: 'madi1In', field: 'madi1In', varBase: 'madi_1_in', name: 'MADI 1', direction: 'In' },
+	{ optionId: 'madi1Out', field: 'madi1Out', varBase: 'madi_1_out', name: 'MADI 1', direction: 'Out' },
+	{ optionId: 'madi2In', field: 'madi2In', varBase: 'madi_2_in', name: 'MADI 2', direction: 'In' },
+	{ optionId: 'madi2Out', field: 'madi2Out', varBase: 'madi_2_out', name: 'MADI 2', direction: 'Out' },
+] as const satisfies ReadonlyArray<{
+	optionId: string
+	field: Exclude<keyof AudioLevels, 'updateCounter'>
+	varBase: string
+	name: string
+	direction: 'In' | 'Out'
+}>
 
 export const dadRfBindingChoices = [
 	{ label: 'RF Channel 1', id: RFChannels['RF Channel 1'] },

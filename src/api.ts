@@ -19,13 +19,17 @@ import type {
 	BaseStationIdentity,
 	SscVersion,
 	AudioLevels,
-	AudioLevel,
 	InterfaceStatusAudioNetwork,
 	InterfaceStatusMadi,
 	InterfaceStatusWordclock,
 } from './types.js'
 import { InputSource, MtType } from './types.js'
-import { getAntennaFrequency, getExistingMicAudiolinkModeFromState, getPortableMobileDeviceSettings } from './utils.js'
+import {
+	getAntennaFrequency,
+	getExistingMicAudiolinkModeFromState,
+	getPortableMobileDeviceSettings,
+	METERING_INTERFACES,
+} from './utils.js'
 import type { SpecteraState } from './state.js'
 import { Agent, Dispatcher } from 'undici'
 import {
@@ -84,16 +88,6 @@ const LEGACY_INPUT_SOURCES: Record<string, InputSource> = {
 	madi1: InputSource['MADI 1'],
 	madi2: InputSource['MADI 2'],
 }
-
-// Map each metering payload field to its original variable names
-const LEVEL_VARIABLE_INTERFACES: { field: keyof AudioLevels; varBase: string }[] = [
-	{ field: 'madi1In', varBase: 'madi_1_in' },
-	{ field: 'madi2In', varBase: 'madi_2_in' },
-	{ field: 'aoIpIn', varBase: 'dante_in' },
-	{ field: 'madi1Out', varBase: 'madi_1_out' },
-	{ field: 'madi2Out', varBase: 'madi_2_out' },
-	{ field: 'aoIpOut', varBase: 'dante_out' },
-]
 
 function normalizeAudioInput(raw: AudioInput & { source?: unknown }): AudioInput {
 	if (raw.inputSource === undefined) {
@@ -730,8 +724,8 @@ export class SpecteraApi extends EventEmitter {
 		if (now - this.lastLevelUpdateTime >= SpecteraApi.LEVEL_UPDATE_INTERVAL_MS) {
 			this.lastLevelUpdateTime = now
 
-			for (const { field, varBase: ifaceName } of LEVEL_VARIABLE_INTERFACES) {
-				const levelData = levels[field] as AudioLevel | undefined
+			for (const { field, varBase: ifaceName } of METERING_INTERFACES) {
+				const levelData = levels[field]
 				if (levelData) {
 					levelData.peak.forEach((val, index) => {
 						const varName = `audio_level_${ifaceName}_${index + 1}_peak`

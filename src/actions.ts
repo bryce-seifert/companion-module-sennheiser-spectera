@@ -34,6 +34,7 @@ import {
 	parseMobileDeviceSettingsJson,
 	rfChannelChoices,
 	dadRfBindingChoices,
+	DAD_OPTION,
 	sanitizeMobileDeviceName,
 	STEREO_INPUT_OFFSET,
 	DEFAULT_CONNECTED_STATE_COLOR,
@@ -287,13 +288,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 	actions['dadConnectedStateColor'] = {
 		name: 'DAD - LED Colors',
 		options: [
-			{
-				type: 'dropdown',
-				label: 'DAD',
-				choices: getChoicesFromEnum(AntennaPortId),
-				default: AntennaPortId.A,
-				id: 'dad',
-			},
+			DAD_OPTION,
 			{
 				type: 'colorpicker',
 				label: 'RF Active Color',
@@ -327,13 +322,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 	actions['dadIdentify'] = {
 		name: 'DAD - Identify',
 		options: [
-			{
-				type: 'dropdown',
-				label: 'DAD',
-				choices: getChoicesFromEnum(AntennaPortId),
-				default: AntennaPortId.A,
-				id: 'dad',
-			},
+			DAD_OPTION,
 			{
 				type: 'dropdown',
 				label: 'Identify',
@@ -358,13 +347,7 @@ export function UpdateActions(self: SpecteraInstance): void {
 	actions['dadRfBinding'] = {
 		name: 'DAD - RF Channel',
 		options: [
-			{
-				type: 'dropdown',
-				label: 'DAD',
-				choices: getChoicesFromEnum(AntennaPortId),
-				default: AntennaPortId.A,
-				id: 'dad',
-			},
+			DAD_OPTION,
 			{
 				type: 'dropdown',
 				label: 'RF Channel',

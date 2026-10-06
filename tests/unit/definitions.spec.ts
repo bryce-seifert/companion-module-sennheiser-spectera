@@ -94,6 +94,24 @@ describe('feedback definitions', () => {
 		).resolves.toBe(false)
 	})
 
+	it('maps each threshold interface option to its metering field', async () => {
+		const instance = makeInstance()
+		instance.state.audioLevels = {
+			updateCounter: 1,
+			aoIpOut: { rms: [-12], peak: [-5] },
+			madi2In: { rms: [-12], peak: [-5] },
+		}
+		UpdateFeedbacks(instance as any)
+		const feedbacks = registeredDefinitions(instance.setFeedbackDefinitions)
+		const check = (iface: string) =>
+			feedbacks.audioLevelThreshold.callback({ options: { interface: iface, channel: '1', threshold: '-10' } })
+
+		await expect(check('danteOut')).resolves.toBe(true)
+		await expect(check('madi2In')).resolves.toBe(true)
+		await expect(check('madi1In')).resolves.toBe(false)
+		await expect(check('unknown')).resolves.toBe(false)
+	})
+
 	it('reads nested interface status and matches a pending confirmation key', async () => {
 		const instance = makeInstance()
 		instance.state.madi1 = {

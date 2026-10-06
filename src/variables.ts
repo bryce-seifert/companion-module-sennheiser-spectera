@@ -42,6 +42,7 @@ import {
 	getAntennaFrequency,
 	getPortableMobileDeviceSettings,
 	isStereoAudiolinkMode,
+	METERING_INTERFACES,
 } from './utils.js'
 
 const rfStateStartupLabels: Record<RfStateStartup, string> = {
@@ -156,25 +157,18 @@ export function UpdateVariableDefinitions(self: SpecteraInstance): void {
 		)
 	}
 
-	const interfaces = ['MADI 1', 'MADI 2', 'Dante']
-	const directions = ['In', 'Out']
-
-	for (const iface of interfaces) {
-		for (const dir of directions) {
-			const ifaceNameSnake = `${iface.replaceAll(' ', '_').toLowerCase()}_${dir.toLowerCase()}`
-
-			for (let i = 1; i <= 32; i++) {
-				variables.push(
-					{
-						variableId: `audio_level_${ifaceNameSnake}_${i}_peak`,
-						name: `Audio Level - ${iface} ${dir} Ch ${i} - Peak (dBFS)`,
-					},
-					{
-						variableId: `audio_level_${ifaceNameSnake}_${i}_rms`,
-						name: `Audio Level - ${iface} ${dir} Ch ${i} - RMS (dBFS)`,
-					},
-				)
-			}
+	for (const { varBase, name, direction } of METERING_INTERFACES) {
+		for (let i = 1; i <= 32; i++) {
+			variables.push(
+				{
+					variableId: `audio_level_${varBase}_${i}_peak`,
+					name: `Audio Level - ${name} ${direction} Ch ${i} - Peak (dBFS)`,
+				},
+				{
+					variableId: `audio_level_${varBase}_${i}_rms`,
+					name: `Audio Level - ${name} ${direction} Ch ${i} - RMS (dBFS)`,
+				},
+			)
 		}
 	}
 
