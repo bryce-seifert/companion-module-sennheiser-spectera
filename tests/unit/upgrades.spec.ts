@@ -128,3 +128,49 @@ describe('confirmation default upgrade', () => {
 		expect(result.updatedFeedbacks).toEqual([])
 	})
 })
+
+describe('serial variables upgrade', () => {
+	const expression = (value: string): ExpressionOrValue<JsonValue> => ({ isExpression: true, value })
+
+	it('converts a lone variable into a plain expression', () => {
+		const identify = action('mobileDeviceIdentify', {
+			serial: option(' $(internal:custom_sek) '),
+			identify: option('true'),
+		})
+
+		const result = UpgradeScripts[4](context, props([identify]))
+
+		expect(result.updatedActions).toEqual([identify])
+		expect(identify.options).toEqual({ serial: expression('$(internal:custom_sek)'), identify: option('true') })
+	})
+
+	it('wraps mixed text and multiple variables in parseVariables', () => {
+		const copy = action('copyAllMobileDeviceSettings', {
+			sourceSerial: option('SEK-$(internal:a)'),
+			targetSerial: option('$(internal:a)"$(internal:b)'),
+		})
+		const compare = feedback('mobileDeviceSameIemMix', { serial1: option('$(internal:x)'), serial2: option('SEK-002') })
+
+		const result = UpgradeScripts[4](context, props([copy], [compare]))
+
+		expect(copy.options).toEqual({
+			sourceSerial: expression('parseVariables("SEK-$(internal:a)")'),
+			targetSerial: expression('parseVariables("$(internal:a)\\"$(internal:b)")'),
+		})
+		expect(compare.options).toEqual({ serial1: expression('$(internal:x)'), serial2: option('SEK-002') })
+		expect(result.updatedActions).toEqual([copy])
+		expect(result.updatedFeedbacks).toEqual([compare])
+	})
+
+	it('leaves plain serials, existing expressions and other options untouched', () => {
+		const plain = action('mobileDeviceIdentify', { serial: option('SEK-001') })
+		const existing = feedback('mobileDeviceConnected', { serial: expression('$(internal:a)') })
+		const other = action('setMobileDeviceName', { serial: option('SEK-001'), name: option('$(internal:name)') })
+
+		const result = UpgradeScripts[4](context, props([plain, other], [existing]))
+
+		expect(result.updatedActions).toEqual([])
+		expect(result.updatedFeedbacks).toEqual([])
+		expect(other.options.name).toEqual(option('$(internal:name)'))
+	})
+})

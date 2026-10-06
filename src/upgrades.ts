@@ -244,9 +244,51 @@ function upgradeConfirmPendingDefaults(
 	}
 }
 
+// API 1.x callbacks ran parseVariablesInString on these custom-value dropdowns; API 2.x only resolves
+// variables in expression mode, so convert any stored value containing a variable into an expression.
+const SERIAL_OPTION_IDS = ['serial', 'serial1', 'serial2', 'sourceSerial', 'targetSerial']
+
+function serialVariablesToExpression(
+	value: ExpressionOrValue<JsonValue | undefined> | undefined,
+): ExpressionOrValue<JsonValue | undefined> | undefined {
+	if (!value || value.isExpression || typeof value.value !== 'string' || !value.value.includes('$(')) return undefined
+	const trimmed = value.value.trim()
+	if (trimmed.startsWith('$(') && trimmed.endsWith(')') && !trimmed.slice(2).includes('$(')) {
+		return { isExpression: true, value: trimmed }
+	}
+	return {
+		isExpression: true,
+		value: `parseVariables("${value.value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}")`,
+	}
+}
+
+function upgradeSerialVariablesToExpressions(
+	_context: CompanionUpgradeContext<ModuleConfig>,
+	props: CompanionStaticUpgradeProps<ModuleConfig, ModuleSecrets>,
+): CompanionStaticUpgradeResult<ModuleConfig, ModuleSecrets> {
+	const upgradeOptions = (options: CompanionMigrationOptionValues): boolean => {
+		let changed = false
+		for (const id of SERIAL_OPTION_IDS) {
+			const next = serialVariablesToExpression(options[id])
+			if (next) {
+				options[id] = next
+				changed = true
+			}
+		}
+		return changed
+	}
+
+	return {
+		updatedConfig: null,
+		updatedActions: props.actions.filter((action) => upgradeOptions(action.options)),
+		updatedFeedbacks: props.feedbacks.filter((feedback) => upgradeOptions(feedback.options)),
+	}
+}
+
 export const UpgradeScripts: CompanionStaticUpgradeScript<ModuleConfig, ModuleSecrets>[] = [
 	upgradeLedColors,
 	upgradeAudioOutputCommandContext,
 	upgradeAudioInputSourceValues,
 	upgradeConfirmPendingDefaults,
+	upgradeSerialVariablesToExpressions,
 ]
